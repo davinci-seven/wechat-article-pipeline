@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+
+# 每篇文章的生成产物，默认不入库
+公众号排版/
+
+# 示例文章可单独提交经过脱敏的sample-output
+!examples/**/公众号排版/.gitkeep
+
+# 本地配置与密钥
+.env
+.env.*
+!.env.example
+config.json
+secrets.json
+credentials.json
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+
+# 日志和临时文件
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db

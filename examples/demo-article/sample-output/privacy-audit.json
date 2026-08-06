@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "changed_files": [
+    "source-integrity.json",
+    "image-map.json",
+    "workflow-result.json",
+    "排版任务卡.md",
+    "validation/clean-html-validation.txt",
+    "validation/stable-html-validation.txt"
+  ],
+  "errors": [],
+  "warnings": [
+    {
+      "file": "output/*.html",
+      "type": "private IPv4",
+      "count": 1,
+      "note": "192.168.1.50与homelab是演示值，不对应真实设备。"
+    }
+  ],
+  "note": "示例输出已移除本机绝对路径；warnings是需要人工确认的演示内容。"
+}

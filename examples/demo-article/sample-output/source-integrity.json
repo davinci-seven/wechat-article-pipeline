@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "markdown": "终稿.md",
+  "theme": "olive-journal",
+  "theme_name": "橄榄手记",
+  "source_sha256_before": "852226f4a67ebad0d06747b3b13dd4509ce3bd660074cf4a7f51c387cd5bb404",
+  "source_sha256_after": "852226f4a67ebad0d06747b3b13dd4509ce3bd660074cf4a7f51c387cd5bb404",
+  "source_unchanged": true,
+  "block_count": 23,
+  "image_count": 2,
+  "missing_image_count": 0,
+  "images": [
+    {
+      "index": 1,
+      "alt": "旧笔记本改造前后的位置对比",
+      "raw_src": "assets/setup.png",
+      "resolved": "assets/setup.png",
+      "section": "为什么不用网盘",
+      "status": "ok",
+      "clean_src": "assets/setup.png"
+    },
+    {
+      "index": 2,
+      "alt": "终端里查看运行状态的输出",
+      "raw_src": "assets/status.png",
+      "resolved": "assets/status.png",
+      "section": "一条命令看它还活着",
+      "status": "ok",
+      "clean_src": "assets/status.png"
+    }
+  ],
+  "content_order_clean_ok": true,
+  "content_order_stable_ok": true,
+  "clean_missing_fragments": [],
+  "stable_missing_fragments": [],
+  "clean_html": "output/终稿_排版_橄榄手记(olive-journal).html",
+  "stable_html": "output/终稿_排版_橄榄手记(olive-journal)_发布稳定版.html",
+  "mobile_screenshot_page": "output/终稿_排版_橄榄手记(olive-journal)_手机截图页.html"
+}

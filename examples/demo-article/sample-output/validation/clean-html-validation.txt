@@ -1,0 +1,4 @@
+📋 公众号HTML合规校验：output/终稿_排版_橄榄手记(olive-journal).html
+   span leaf包裹：44处
+
+✅ 完全合规，可直接粘贴到公众号编辑器

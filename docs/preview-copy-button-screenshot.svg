@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#111827" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="760" fill="#eef0f2"/>
+  <text x="74" y="56" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="28" font-weight="700" fill="#111827">带“一键复制”的公众号预览页</text>
+  <text x="74" y="88" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="17" fill="#64748b">GitHub不能直接运行本地HTML，所以README里直接展示最终预览效果。</text>
+
+  <g filter="url(#shadow)">
+    <rect x="72" y="116" width="1056" height="590" rx="18" fill="#ffffff"/>
+  </g>
+
+  <rect x="72" y="116" width="1056" height="64" rx="18" fill="#ffffff"/>
+  <rect x="72" y="156" width="1056" height="24" fill="#ffffff"/>
+  <circle cx="102" cy="148" r="7" fill="#ff5f57"/>
+  <circle cx="126" cy="148" r="7" fill="#febc2e"/>
+  <circle cx="150" cy="148" r="7" fill="#28c840"/>
+  <text x="182" y="143" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#111827">公众号排版预览</text>
+  <text x="182" y="166" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="14" fill="#6b7280">下方是排版效果，点右侧按钮后直接粘贴到公众号</text>
+  <rect x="880" y="130" width="210" height="42" rx="9" fill="#059669"/>
+  <text x="985" y="157" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="16" font-weight="700" fill="#ffffff">📋 复制到公众号</text>
+  <line x1="72" y1="180" x2="1128" y2="180" stroke="#e5e7eb"/>
+
+  <rect x="405" y="208" width="390" height="462" rx="4" fill="#fdfdf8" stroke="#d9dde3"/>
+  <rect x="423" y="228" width="354" height="136" rx="3" fill="#171717"/>
+  <rect x="423" y="228" width="354" height="5" fill="#cf5a22"/>
+  <text x="444" y="272" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="24" font-weight="800" fill="#fffdf6">我用一个U盘，把吃灰五年</text>
+  <text x="444" y="309" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="24" font-weight="800" fill="#fffdf6">的旧笔记本救活了</text>
+  <text x="444" y="344" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="18" font-weight="700" fill="#e7dfd2">小白刷Ubuntu，从启动盘到合盖不睡</text>
+
+  <text x="423" y="402" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="16" fill="#4d4f46">很多人家里都有一台这样的电脑。</text>
+  <text x="423" y="440" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="16" fill="#4d4f46">开机慢，Windows更新转半天，电池也不行了。</text>
+  <text x="423" y="470" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="16" fill="#4d4f46">卖二手不值几个钱，扔了又可惜，就一直吃灰。</text>
+  <text x="423" y="520" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="34" font-weight="800" fill="#cf5a22">01</text>
+  <text x="478" y="510" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="11" letter-spacing="2" fill="#9e998f">CHAPTER</text>
+  <text x="423" y="552" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="20" font-weight="800" fill="#191919">这台旧电脑能不能刷？</text>
+  <rect x="423" y="568" width="42" height="3" fill="#cf5a22"/>
+  <text x="423" y="612" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="16" fill="#4d4f46">旧笔记本刷Linux的门槛，比你想象的低很多。</text>
+  <text x="423" y="642" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',sans-serif" font-size="16" fill="#4d4f46">安装过程基本都在点鼠标，命令也可以直接照抄。</text>
+</svg>
