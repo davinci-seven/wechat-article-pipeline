@@ -12,10 +12,15 @@
 | 我现在要做什么 | 直接看这里 |
 | --- | --- |
 | 在Windows电脑上一键排版 | [快速开始](#最快开始) |
+| 安装成Skill交给Codex执行 | [安装成Skill](docs/skill-install.md) |
 | 把文章直接丢给ChatGPT处理 | [AI执行提示词](docs/agent-prompt.md) |
 | 安装运行环境 | [Windows安装](docs/windows-install.md) |
 | 查看项目来源和分工 | [致谢与项目边界](docs/credits.md) |
 | 发布前检查隐私 | [公开前脱敏检查](docs/privacy-check.md) |
+
+## 安装成Skill
+
+想让Codex按固定规则接手定稿后的排版，直接看[安装成Skill](docs/skill-install.md)。仓库根目录的`SKILL.md`已经写好Windows和非Windows两套执行路径，也写死了不改正文、不动图片顺序、缺图停止和未经确认不创建公众号草稿这些边界。
 
 ## 最终效果
 
