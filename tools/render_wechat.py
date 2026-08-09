@@ -22,6 +22,7 @@ HEADING_RE = re.compile(r"^(#{1,3})\s+(.+?)\s*$")
 ORDERED_RE = re.compile(r"^\s*(\d+)\.\s+(.+)$")
 UNORDERED_RE = re.compile(r"^\s*[-*]\s+(.+)$")
 HR_RE = re.compile(r"^\s*(?:---+|\*\*\*+)\s*$")
+TABLE_SEPARATOR_CELL_RE = re.compile(r"^:?-{3,}:?$")
 
 
 @dataclass(frozen=True)
@@ -159,6 +160,41 @@ class Block:
     language: str = ""
     alt: str = ""
     src: str = ""
+    rows: list[list[str]] | None = None
+    aligns: list[str] | None = None
+
+
+def column_aligns(separator_line: str) -> list[str]:
+    """把 :---: / ---: / :--- 读成 center / right / left。"""
+    aligns: list[str] = []
+    for cell in split_table_row(separator_line):
+        left = cell.startswith(":")
+        right = cell.endswith(":")
+        if left and right:
+            aligns.append("center")
+        elif right:
+            aligns.append("right")
+        else:
+            aligns.append("left")
+    return aligns
+
+
+def split_table_row(line: str) -> list[str]:
+    """Split a simple GFM table row while preserving escaped pipes."""
+    value = line.strip()
+    if value.startswith("|"):
+        value = value[1:]
+    if value.endswith("|") and not value.endswith(r"\|"):
+        value = value[:-1]
+    cells = re.split(r"(?<!\\)\|", value)
+    return [cell.strip().replace(r"\|", "|") for cell in cells]
+
+
+def is_table_separator(line: str) -> bool:
+    cells = split_table_row(line)
+    return len(cells) > 0 and all(
+        TABLE_SEPARATOR_CELL_RE.fullmatch(cell) for cell in cells
+    )
 
 
 class TextExtractor(HTMLParser):
@@ -198,6 +234,24 @@ def parse_markdown(source: str) -> list[Block]:
             if index < len(lines):
                 index += 1
             blocks.append(Block("code", "\n".join(code_lines), language=language))
+            continue
+
+        if (
+            "|" in line
+            and index + 1 < len(lines)
+            and is_table_separator(lines[index + 1])
+        ):
+            header = split_table_row(line)
+            aligns = column_aligns(lines[index + 1])
+            table_rows: list[list[str]] = []
+            index += 2
+            while index < len(lines) and lines[index].strip() and "|" in lines[index]:
+                row = split_table_row(lines[index])
+                if len(row) != len(header):
+                    break
+                table_rows.append(row)
+                index += 1
+            blocks.append(Block("table", items=header, rows=table_rows, aligns=aligns))
             continue
 
         image_match = IMAGE_RE.match(line)
@@ -447,6 +501,38 @@ def render_blocks(
                 'border-radius:3px;">'
                 f"{language}{''.join(rendered_lines)}</section>"
             )
+        elif block.kind == "table":
+            headers = block.items or []
+            rows = block.rows or []
+            aligns = block.aligns or []
+            align_of = lambda i: aligns[i] if i < len(aligns) else "left"
+            table_parts = [
+                '<section style="margin:4px 0 22px;overflow-x:auto;max-width:100%;">',
+                '<table style="width:100%;border-collapse:collapse;table-layout:fixed;'
+                f'font-size:13px;line-height:1.65;color:{theme.text};">',
+                "<thead><tr>",
+            ]
+            for position, header in enumerate(headers):
+                table_parts.append(
+                    f'<th style="padding:10px 8px;text-align:{align_of(position)};'
+                    'vertical-align:top;'
+                    f'font-weight:700;color:{theme.heading};background:{theme.list_bg};'
+                    f'border:1px solid {theme.list_border};overflow-wrap:anywhere;">'
+                    f'{inline_html(header, theme)}</th>'
+                )
+            table_parts.append("</tr></thead><tbody>")
+            for row in rows:
+                table_parts.append("<tr>")
+                for position, cell in enumerate(row):
+                    table_parts.append(
+                        f'<td style="padding:10px 8px;text-align:{align_of(position)};'
+                        'vertical-align:top;'
+                        f'border:1px solid {theme.list_border};overflow-wrap:anywhere;">'
+                        f'{inline_html(cell, theme)}</td>'
+                    )
+                table_parts.append("</tr>")
+            table_parts.append("</tbody></table></section>")
+            parts.append("".join(table_parts))
         elif block.kind == "hr":
             parts.append(
                 '<section style="margin:34px auto;width:100%;height:1px;'
@@ -467,6 +553,10 @@ def visible_fragments(blocks: list[Block]) -> list[str]:
             fragments.extend(inline_plain(item) for item in (block.items or []))
         elif block.kind == "code":
             fragments.extend(block.text.split("\n"))
+        elif block.kind == "table":
+            fragments.extend(inline_plain(cell) for cell in (block.items or []))
+            for row in block.rows or []:
+                fragments.extend(inline_plain(cell) for cell in row)
     return [re.sub(r"\s+", " ", item).strip() for item in fragments if item.strip()]
 
 

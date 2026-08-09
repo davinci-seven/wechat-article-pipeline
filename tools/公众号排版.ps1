@@ -102,6 +102,9 @@ if ($sourceHashBefore -ne $sourceHashAfter) {
     throw "安全检查失败：原始Markdown内容发生变化。"
 }
 
+$screenshotPath = Join-Path $outputDir "$([IO.Path]::GetFileNameWithoutExtension($markdownPath))_390px_手机长截图.png"
+$screenshotGenerated = Test-Path -LiteralPath $screenshotPath
+
 $summary = [ordered]@{
     ok = $true
     markdown = [IO.Path]::GetFileName($markdownPath)
@@ -111,7 +114,8 @@ $summary = [ordered]@{
     stable_html = "output\$([IO.Path]::GetFileName($stableHtml))"
     preview_html = "output\$([IO.Path]::GetFileName($previewHtml))"
     mobile_screenshot_page = "output\$([IO.Path]::GetFileName($mobilePage))"
-    screenshot = "output\$([IO.Path]::GetFileNameWithoutExtension($markdownPath))_390px_手机长截图.png"
+    screenshot = if ($screenshotGenerated) { "output\$([IO.Path]::GetFileName($screenshotPath))" } else { $null }
+    screenshot_status = if ($screenshotGenerated) { "已生成" } else { "未运行" }
     published = $false
 }
 $summary | ConvertTo-Json -Depth 4 |
