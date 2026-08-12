@@ -25,7 +25,15 @@ $PSVersionTable.PSVersion
 pip install -r requirements.txt
 ```
 
-当前只有Pillow一个Python依赖，用于长截图拼接。
+Pillow用于图片处理，Playwright用于生成390px手机端长截图。
+
+Playwright还需要下载一次浏览器内核：
+
+```powershell
+python -m playwright install chromium
+```
+
+不装Playwright也能跑完整条流水线，只是长截图那一步会告警并标记为“未运行”。
 
 ## 3. 安装gzh-design
 
@@ -59,7 +67,7 @@ gzh-design在这套流程里负责什么，见[致谢与项目边界](credits.md
 .\tools\公众号排版.ps1 -ArticleDir .\examples\demo-article -OpenPreview
 ```
 
-正常情况下会看到7个步骤依次完成，并打开手机端预览页。
+正常情况下会看到8个步骤依次完成，并打开手机端预览页。
 
 输出目录位于：
 
@@ -97,6 +105,17 @@ md2wechat doctor --json
 ### 原始Markdown内容发生变化
 
 完整性检查发现排版前后的文件哈希不一致。先确认是否有编辑器、同步软件或其他脚本在运行期间改动了原稿，再重新执行。
+
+### 长截图未生成
+
+第6步会打印退出码：`3`是没装Playwright，`4`是浏览器执行失败。
+
+```powershell
+pip install playwright
+python -m playwright install chromium
+```
+
+详细输出见`公众号排版alidation\screenshot.txt`。这一步失败不会中断流水线，其余产物照常生成。
 
 ### 隐私检查失败
 

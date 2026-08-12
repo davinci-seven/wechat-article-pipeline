@@ -14,6 +14,7 @@ $ErrorActionPreference = "Stop"
 $toolDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $renderer = Join-Path $toolDir "render_wechat.py"
 $sanitizer = Join-Path $toolDir "sanitize_public_output.py"
+$capturer = Join-Path $toolDir "capture_mobile_screenshot.py"
 $gzhSkill = Join-Path $env:USERPROFILE ".codex\skills\gzh-design"
 $validator = Join-Path $gzhSkill "scripts\validate_gzh_html.py"
 $componentLint = Join-Path $gzhSkill "scripts\component_lint.py"
@@ -46,7 +47,7 @@ if ([string]::IsNullOrWhiteSpace($Markdown)) {
     }
 }
 
-foreach ($required in @($renderer, $sanitizer, $validator, $componentLint, $previewWrapper)) {
+foreach ($required in @($renderer, $sanitizer, $capturer, $validator, $componentLint, $previewWrapper)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "缺少必需文件：$required"
     }
@@ -58,7 +59,7 @@ $outputDir = Join-Path $layoutRoot "output"
 $logDir = Join-Path $layoutRoot "validation"
 New-Item -ItemType Directory -Force -Path $layoutRoot, $outputDir, $logDir | Out-Null
 
-Write-Host "[1/7] 检查图片并生成正文HTML（主题：$Theme）..."
+Write-Host "[1/8] 检查图片并生成正文HTML（主题：$Theme）..."
 $renderArgs = @("--markdown", $markdownPath, "--output-root", $layoutRoot, "--theme", $Theme)
 if (-not [string]::IsNullOrWhiteSpace($SectionLabels)) {
     $renderArgs += @("--section-labels", $SectionLabels)
@@ -77,33 +78,47 @@ $previewHtml = [IO.Path]::Combine(
     [IO.Path]::GetFileNameWithoutExtension($stableHtml).Replace("_发布稳定版", "") + "_预览.html"
 )
 
-Write-Host "[2/7] 检查主题组件..."
+Write-Host "[2/8] 检查主题组件..."
 & $python $componentLint $gzhSkill 2>&1 |
     Tee-Object -FilePath (Join-Path $logDir "component-lint.txt")
 if ($LASTEXITCODE -ne 0) { throw "主题组件校验存在ERROR" }
 
-Write-Host "[3/7] 校验干净正文HTML..."
+Write-Host "[3/8] 校验干净正文HTML..."
 & $python $validator $cleanHtml 2>&1 |
     Tee-Object -FilePath (Join-Path $logDir "clean-html-validation.txt")
 if ($LASTEXITCODE -ne 0) { throw "干净正文HTML校验存在ERROR" }
 
-Write-Host "[4/7] 校验发布稳定版HTML..."
+Write-Host "[4/8] 校验发布稳定版HTML..."
 & $python $validator $stableHtml 2>&1 |
     Tee-Object -FilePath (Join-Path $logDir "stable-html-validation.txt")
 if ($LASTEXITCODE -ne 0) { throw "发布稳定版HTML校验存在ERROR" }
 
-Write-Host "[5/7] 生成带复制按钮的预览页..."
+Write-Host "[5/8] 生成带复制按钮的预览页..."
 & $python $previewWrapper $stableHtml $previewHtml
 if ($LASTEXITCODE -ne 0) { throw "预览页生成失败" }
 
-Write-Host "[6/7] 确认原始Markdown未被覆盖..."
+Write-Host "[6/8] 生成390px手机端完整长截图..."
+$screenshotPath = Join-Path $outputDir "$([IO.Path]::GetFileNameWithoutExtension($markdownPath))_390px_手机长截图.png"
+# 截图依赖Playwright，属于可选能力：装了就真截，没装就如实标"未运行"，
+# 但不能因此让整条流水线失败，也不能拿截图页冒充长截图。
+# $ErrorActionPreference=Stop 会把原生命令写到stderr的提示也当成终止性错误，
+# 这一步允许失败，所以先临时放开，拿到退出码再恢复。
+$previousErrorAction = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+& $python $capturer --page $mobilePage --output $screenshotPath 2>&1 |
+    Tee-Object -FilePath (Join-Path $logDir "screenshot.txt")
+$screenshotExit = $LASTEXITCODE
+$ErrorActionPreference = $previousErrorAction
+$screenshotGenerated = ($screenshotExit -eq 0) -and (Test-Path -LiteralPath $screenshotPath)
+if (-not $screenshotGenerated) {
+    Write-Warning "长截图未生成（退出码$screenshotExit），结果中标记为「未运行」。安装方法：pip install playwright; python -m playwright install chromium"
+}
+
+Write-Host "[7/8] 确认原始Markdown未被覆盖..."
 $sourceHashAfter = (Get-FileHash -LiteralPath $markdownPath -Algorithm SHA256).Hash
 if ($sourceHashBefore -ne $sourceHashAfter) {
     throw "安全检查失败：原始Markdown内容发生变化。"
 }
-
-$screenshotPath = Join-Path $outputDir "$([IO.Path]::GetFileNameWithoutExtension($markdownPath))_390px_手机长截图.png"
-$screenshotGenerated = Test-Path -LiteralPath $screenshotPath
 
 $summary = [ordered]@{
     ok = $true
@@ -121,7 +136,7 @@ $summary = [ordered]@{
 $summary | ConvertTo-Json -Depth 4 |
     Set-Content -LiteralPath (Join-Path $layoutRoot "workflow-result.json") -Encoding UTF8
 
-Write-Host "[7/7] 清理本机路径并检查敏感信息..."
+Write-Host "[8/8] 清理本机路径并检查敏感信息..."
 & $python $sanitizer --article-dir $articlePath --layout-root $layoutRoot
 if ($LASTEXITCODE -ne 0) { throw "隐私检查未通过，请查看privacy-audit.json" }
 

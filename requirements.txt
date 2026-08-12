@@ -1,1 +1,5 @@
 Pillow>=10.0.0
+
+# 长截图需要：pip install playwright && python -m playwright install chromium
+# 不装也能跑完整条流水线，只是第6步会标记为「未运行」。
+playwright>=1.40.0

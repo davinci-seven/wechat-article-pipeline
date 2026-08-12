@@ -36,10 +36,14 @@ description: 把定稿Markdown和本地配图生成公众号兼容内联HTML、�
 优先调用仓库现有的一键脚本：
 
 ```powershell
-.\tools\公众号排版.ps1 -ArticleDir <文章目录> -Markdown <定稿文件名> -OpenPreview
+.\tools\公众号排版.ps1 -ArticleDir "F:\文章\我的文章" -Markdown "终稿.md" -OpenPreview
 ```
 
-只有用户指定主题时才追加`-Theme <主题标识>`。脚本失败后保留真实错误，不绕过图片、HTML或隐私检查。
+路径必须加引号。中文目录、空格和括号在不加引号时会被拆开，`<`和`>`在PowerShell里还是重定向符，直接写占位尖括号会报语法错误。
+
+只有用户指定主题时才追加`-Theme moyu-green`（可选值用`-ListThemes`查看）。脚本失败后保留真实错误，不绕过图片、HTML或隐私检查。
+
+该脚本已包含全部8个步骤，含长截图。未安装Playwright时第6步会告警并把`screenshot_status`标为“未运行”，其余步骤照常完成。
 
 ### 非Windows或ChatGPT代码执行环境
 
@@ -53,14 +57,52 @@ description: 把定稿Markdown和本地配图生成公众号兼容内联HTML、�
 6. 再次计算原稿SHA256，确认原稿未变化。
 7. 调用`tools/sanitize_public_output.py`生成隐私报告。HTML只扫描，不改写；报告里的警告需要人工判断。
 
-可直接运行的渲染命令：
+完整命令如下。把`ARTICLE`、`LAYOUT`、`GZH`三个变量换成实际路径即可，其余原样执行：
 
 ```bash
+ARTICLE="/path/to/我的文章"            # 文章目录
+LAYOUT="$ARTICLE/公众号排版"            # 产物目录，不要写回原稿目录之外
+GZH="$HOME/.codex/skills/gzh-design"   # 已安装的gzh-design
+
+# 1. 渲染：正文HTML、发布稳定版、手机截图页、图片证据表、完整性数据
 python tools/render_wechat.py \
-  --markdown <定稿Markdown> \
-  --output-root <输出目录> \
+  --markdown "$ARTICLE/终稿.md" \
+  --output-root "$LAYOUT" \
   --theme olive-journal
+
+# 渲染器按主题决定文件名，从报告里读，不要自己拼。
+# 路径通过sys.argv传入，不要拼进Python字符串，否则Windows路径的反斜杠会被当转义符。
+read_field() {
+  python -c "import json,sys;print(json.load(open(sys.argv[1],encoding='utf-8'))[sys.argv[2]])" \
+    "$LAYOUT/source-integrity.json" "$1"
+}
+CLEAN=$(read_field clean_html)
+STABLE=$(read_field stable_html)
+MOBILE=$(read_field mobile_screenshot_page)
+PREVIEW="${STABLE/_发布稳定版.html/_预览.html}"
+
+# 2. 组件与HTML校验，退出码非0即为不合规
+python "$GZH/scripts/component_lint.py" "$GZH"
+python "$GZH/scripts/validate_gzh_html.py" "$CLEAN"
+python "$GZH/scripts/validate_gzh_html.py" "$STABLE"
+
+# 3. 带一键复制按钮的预览页
+python "$GZH/scripts/wrap_preview.py" "$STABLE" "$PREVIEW"
+
+# 4. 390px手机端完整长截图（需要Playwright）
+python tools/capture_mobile_screenshot.py \
+  --page "$MOBILE" \
+  --output "$LAYOUT/output/终稿_390px_手机长截图.png"
+
+# 5. 清理本机路径并检查敏感信息
+python tools/sanitize_public_output.py \
+  --article-dir "$ARTICLE" \
+  --layout-root "$LAYOUT"
 ```
+
+第4步的退出码含义：`0`成功，`2`手机截图页不存在，`3`未安装Playwright，`4`浏览器执行失败。返回`3`时先尝试`pip install playwright && python -m playwright install chromium`；仍然不行就把长截图标为“未运行”，不得用手机截图页HTML冒充长截图。
+
+`tools/stitch_screenshot.py`用于已经手动分段截好图、需要拼接的场合；走上面第4步时不需要它，脚本内部会自行处理超高页面的分段拼接。
 
 后续校验、预览包装和截图必须依据当前环境中的实际脚本位置执行，不得伪造命令输出。
 

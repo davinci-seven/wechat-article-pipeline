@@ -6,12 +6,13 @@
 
 ## 需要上传什么
 
-建议一次上传这4类文件：
+建议一次上传这5类文件：
 
 1. 定稿Markdown，最好命名为`终稿.md`
 2. Markdown里引用的全部图片
 3. `tools/render_wechat.py`
-4. `tools/stitch_screenshot.py`
+4. `tools/capture_mobile_screenshot.py`
+5. `tools/stitch_screenshot.py`
 
 缺少图片时，AI无法完成图片检查和稳定版HTML；缺少脚本时，输出也不会与本项目保持一致。
 

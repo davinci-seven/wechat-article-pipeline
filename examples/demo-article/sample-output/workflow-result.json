@@ -1,13 +1,13 @@
-{
-  "ok": true,
-  "markdown": "终稿.md",
-  "theme": "olive-journal",
-  "source_unchanged": true,
-  "clean_html": "output/终稿_排版_橄榄手记(olive-journal).html",
-  "stable_html": "output/终稿_排版_橄榄手记(olive-journal)_发布稳定版.html",
-  "preview_html": "output/终稿_排版_橄榄手记(olive-journal)_预览.html",
-  "mobile_screenshot_page": "output/终稿_排版_橄榄手记(olive-journal)_手机截图页.html",
-  "screenshot": "output/终稿_390px_手机长截图.png",
-  "privacy_audit": "privacy-audit.json",
-  "published": false
+﻿{
+    "ok":  true,
+    "markdown":  "终稿.md",
+    "theme":  "olive-journal",
+    "source_unchanged":  true,
+    "clean_html":  "output\\终稿_排版_橄榄手记(olive-journal).html",
+    "stable_html":  "output\\终稿_排版_橄榄手记(olive-journal)_发布稳定版.html",
+    "preview_html":  "output\\终稿_排版_橄榄手记(olive-journal)_预览.html",
+    "mobile_screenshot_page":  "output\\终稿_排版_橄榄手记(olive-journal)_手机截图页.html",
+    "screenshot":  "output\\终稿_390px_手机长截图.png",
+    "screenshot_status":  "已生成",
+    "published":  false
 }

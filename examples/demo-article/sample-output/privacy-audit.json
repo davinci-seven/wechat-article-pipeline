@@ -1,21 +1,32 @@
 {
   "ok": true,
   "changed_files": [
-    "source-integrity.json",
     "image-map.json",
-    "workflow-result.json",
-    "排版任务卡.md",
-    "validation/clean-html-validation.txt",
-    "validation/stable-html-validation.txt"
+    "source-integrity.json",
+    "排版任务卡.md"
   ],
   "errors": [],
   "warnings": [
     {
-      "file": "output/*.html",
+      "file": "output\\终稿_排版_橄榄手记(olive-journal).html",
       "type": "private IPv4",
-      "count": 1,
-      "note": "192.168.1.50与homelab是演示值，不对应真实设备。"
+      "count": 1
+    },
+    {
+      "file": "output\\终稿_排版_橄榄手记(olive-journal)_发布稳定版.html",
+      "type": "private IPv4",
+      "count": 1
+    },
+    {
+      "file": "output\\终稿_排版_橄榄手记(olive-journal)_手机截图页.html",
+      "type": "private IPv4",
+      "count": 1
+    },
+    {
+      "file": "output\\终稿_排版_橄榄手记(olive-journal)_预览.html",
+      "type": "private IPv4",
+      "count": 1
     }
   ],
-  "note": "示例输出已移除本机绝对路径；warnings是需要人工确认的演示内容。"
+  "note": "warnings需要人工判断；errors处理完成前不要公开输出目录。"
 }

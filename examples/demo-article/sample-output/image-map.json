@@ -3,7 +3,7 @@
     "index": 1,
     "alt": "旧笔记本改造前后的位置对比",
     "raw_src": "assets/setup.png",
-    "resolved": "assets/setup.png",
+    "resolved": "<ARTICLE_DIR>\\assets\\setup.png",
     "section": "为什么不用网盘",
     "status": "ok",
     "clean_src": "assets/setup.png"
@@ -12,7 +12,7 @@
     "index": 2,
     "alt": "终端里查看运行状态的输出",
     "raw_src": "assets/status.png",
-    "resolved": "assets/status.png",
+    "resolved": "<ARTICLE_DIR>\\assets\\status.png",
     "section": "一条命令看它还活着",
     "status": "ok",
     "clean_src": "assets/status.png"

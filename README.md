@@ -49,8 +49,9 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张带复制�
 3. 生成图片内嵌的发布稳定版
 4. 校验主题组件和最终HTML
 5. 生成带复制按钮的浏览器预览
-6. 确认原始Markdown没有被修改
-7. 清理报告中的本机路径并检查常见敏感信息
+6. 在390px视口截取完整长截图（需要Playwright，未安装时标记为“未运行”）
+7. 确认原始Markdown没有被修改
+8. 清理报告中的本机路径并检查常见敏感信息
 
 也可以把文章目录直接拖到`tools\公众号排版.bat`上。
 
@@ -63,6 +64,7 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张带复制�
 - 定稿Markdown
 - Markdown引用的全部图片
 - `tools/render_wechat.py`
+- `tools/capture_mobile_screenshot.py`
 - `tools/stitch_screenshot.py`
 
 然后复制这里的现成提示词：
@@ -168,6 +170,7 @@ AI执行完成后，应返回一套zip，其中至少包含：
 - Python 3.10+
 - PowerShell 5.1或PowerShell 7
 - Pillow
+- Playwright，可选，仅长截图需要
 - [gzh-design](https://github.com/isjiamu/gzh-design-skill)
 
 ## 这个仓库负责什么
