@@ -3,6 +3,9 @@
   "changed_files": [
     "image-map.json",
     "source-integrity.json",
+    "validation\\clean-html-validation.txt",
+    "validation\\screenshot.txt",
+    "validation\\stable-html-validation.txt",
     "排版任务卡.md"
   ],
   "errors": [],

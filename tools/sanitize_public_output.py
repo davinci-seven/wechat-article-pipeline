@@ -13,6 +13,26 @@ from pathlib import Path
 SANITIZE_SUFFIXES = {".json", ".md", ".txt"}
 SCAN_SUFFIXES = SANITIZE_SUFFIXES | {".html", ".htm"}
 
+
+def read_text_any_encoding(path: Path) -> tuple[str, str]:
+    """按BOM识别编码读取。
+
+    Windows PowerShell 5.1 的 Tee-Object 默认写 UTF-16LE。以前这里一律按
+    UTF-8 读，UTF-16 日志会被读成乱码，正则匹配不到绝对路径，清理静默失效，
+    结果就是"隐私检查0 ERROR"但仓库里真的躺着本机路径。
+    """
+    raw = path.read_bytes()
+    for bom, encoding in (
+        (b"\xff\xfe\x00\x00", "utf-32"),
+        (b"\x00\x00\xfe\xff", "utf-32"),
+        (b"\xff\xfe", "utf-16"),
+        (b"\xfe\xff", "utf-16"),
+        (b"\xef\xbb\xbf", "utf-8-sig"),
+    ):
+        if raw.startswith(bom):
+            return raw.decode(encoding, errors="replace"), encoding
+    return raw.decode("utf-8", errors="replace"), "utf-8"
+
 HIGH_RISK_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("OpenAI API key", re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}\b")),
     ("GitHub token", re.compile(r"\b(?:ghp|github_pat)_[A-Za-z0-9_]{20,}\b")),
@@ -133,13 +153,16 @@ def main() -> int:
         suffix = path.suffix.lower()
         if not path.is_file() or path == audit_path or suffix not in SCAN_SUFFIXES:
             continue
-        text = path.read_text(encoding="utf-8-sig", errors="replace")
+        text, encoding = read_text_any_encoding(path)
         inspected = text
         if suffix in SANITIZE_SUFFIXES:
             inspected, changed = sanitize_text(text, pairs)
-            if changed:
+            # 非UTF-8的日志即使内容没变也重写一遍，统一成UTF-8，
+            # 免得下次扫描又因为编码问题漏检。
+            if changed or encoding != "utf-8":
                 path.write_text(inspected, encoding="utf-8")
-                changed_files.append(str(path.relative_to(layout_root)))
+                if changed:
+                    changed_files.append(str(path.relative_to(layout_root)))
         file_errors, file_warnings = finding_rows(
             path.relative_to(layout_root),
             inspected,

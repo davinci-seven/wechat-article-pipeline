@@ -1,5 +1,8 @@
+# 必需
 Pillow>=10.0.0
 
-# 长截图需要：pip install playwright && python -m playwright install chromium
-# 不装也能跑完整条流水线，只是第6步会标记为「未运行」。
-playwright>=1.40.0
+# 可选：390px手机端长截图需要Playwright。
+# 不装也能跑完整条流水线，截图那一步会标记为「未运行」。
+# 需要截图时单独执行：
+#   pip install playwright
+#   python -m playwright install chromium

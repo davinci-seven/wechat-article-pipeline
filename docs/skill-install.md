@@ -34,6 +34,15 @@ git clone https://github.com/davinci-seven/wechat-article-pipeline.git "$env:USE
 python -m pip install Pillow
 ```
 
+390px完整长截图需要Playwright和一次性的浏览器内核下载：
+
+```bash
+python -m pip install playwright
+python -m playwright install chromium
+```
+
+不装也能跑完整条流水线，只是截图那一步会告警并把`screenshot_status`标为“未运行”，其余产物照常生成。
+
 这套流水线还会调用gzh-design提供的HTML校验、组件检查和复制预览包装脚本。按[gzh-design仓库](https://github.com/isjiamu/gzh-design-skill)的说明，把它安装为`gzh-design`Skill。
 
 Windows一键入口会从`%USERPROFILE%\.codex\skills\gzh-design`读取这些脚本：
@@ -59,7 +68,9 @@ Windows一键入口会从`%USERPROFILE%\.codex\skills\gzh-design`读取这些脚
 使用red-white主题。
 ```
 
-Windows环境会优先执行`tools/公众号排版.ps1`。非Windows或ChatGPT代码执行环境会调用`tools/render_wechat.py`、`tools/stitch_screenshot.py`、`tools/sanitize_public_output.py`和现有校验脚本完成相同步骤。
+Windows环境会优先执行`tools/公众号排版.ps1`。非Windows或ChatGPT代码执行环境会调用`tools/render_wechat.py`、`tools/capture_mobile_screenshot.py`、`tools/sanitize_public_output.py`和gzh-design的校验脚本完成相同步骤，完整命令写在仓库根目录的`SKILL.md`里。
+
+`tools/stitch_screenshot.py`只在需要手动拼接分段截图时才用；走`capture_mobile_screenshot.py`时不需要它，脚本内部会处理超高页面的分段拼接。
 
 ## 第一次验收
 
@@ -71,7 +82,7 @@ Windows环境会优先执行`tools/公众号排版.ps1`。非Windows或ChatGPT�
 
 完成后检查`examples/demo-article/公众号排版`。应该能看到正文HTML、发布稳定版、复制预览页、手机截图页、图片证据表、`source-integrity.json`、`workflow-result.json`和`privacy-audit.json`。
 
-390px完整长截图需要实际浏览器截图。只生成手机截图页，不等于已经生成长截图。
+长截图是否真的生成，以`workflow-result.json`里的`screenshot_status`为准：`已生成`才算数，`未运行`说明Playwright缺失或执行失败。只生成手机截图页HTML，不等于已经生成长截图。
 
 ## 这套Skill不会做什么
 

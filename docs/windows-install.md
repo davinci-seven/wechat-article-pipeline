@@ -115,7 +115,7 @@ pip install playwright
 python -m playwright install chromium
 ```
 
-详细输出见`公众号排版alidation\screenshot.txt`。这一步失败不会中断流水线，其余产物照常生成。
+详细输出见`公众号排版\validation\screenshot.txt`。这一步失败不会中断流水线，其余产物照常生成。
 
 ### 隐私检查失败
 

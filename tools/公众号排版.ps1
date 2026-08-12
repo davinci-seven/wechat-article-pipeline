@@ -21,6 +21,19 @@ $componentLint = Join-Path $gzhSkill "scripts\component_lint.py"
 $previewWrapper = Join-Path $gzhSkill "scripts\wrap_preview.py"
 $python = (Get-Command python -ErrorAction Stop).Source
 
+function Write-StepLog {
+    # Tee-Object 在 Windows PowerShell 5.1 下默认写 UTF-16LE，
+    # 会让后续的隐私清理读成乱码、漏掉本机绝对路径，所以显式写 UTF-8。
+    param([Parameter(ValueFromPipeline = $true)]$InputObject, [string]$Path)
+    begin { $collected = New-Object System.Collections.ArrayList }
+    process { [void]$collected.Add($InputObject) }
+    end {
+        ($collected | Out-String) | Set-Content -LiteralPath $Path -Encoding UTF8
+        $collected
+    }
+}
+
+
 if ($ListThemes) {
     & $python $renderer --list-themes
     exit $LASTEXITCODE
@@ -80,17 +93,17 @@ $previewHtml = [IO.Path]::Combine(
 
 Write-Host "[2/8] 检查主题组件..."
 & $python $componentLint $gzhSkill 2>&1 |
-    Tee-Object -FilePath (Join-Path $logDir "component-lint.txt")
+    Write-StepLog -Path (Join-Path $logDir "component-lint.txt")
 if ($LASTEXITCODE -ne 0) { throw "主题组件校验存在ERROR" }
 
 Write-Host "[3/8] 校验干净正文HTML..."
 & $python $validator $cleanHtml 2>&1 |
-    Tee-Object -FilePath (Join-Path $logDir "clean-html-validation.txt")
+    Write-StepLog -Path (Join-Path $logDir "clean-html-validation.txt")
 if ($LASTEXITCODE -ne 0) { throw "干净正文HTML校验存在ERROR" }
 
 Write-Host "[4/8] 校验发布稳定版HTML..."
 & $python $validator $stableHtml 2>&1 |
-    Tee-Object -FilePath (Join-Path $logDir "stable-html-validation.txt")
+    Write-StepLog -Path (Join-Path $logDir "stable-html-validation.txt")
 if ($LASTEXITCODE -ne 0) { throw "发布稳定版HTML校验存在ERROR" }
 
 Write-Host "[5/8] 生成带复制按钮的预览页..."
@@ -106,7 +119,7 @@ $screenshotPath = Join-Path $outputDir "$([IO.Path]::GetFileNameWithoutExtension
 $previousErrorAction = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 & $python $capturer --page $mobilePage --output $screenshotPath 2>&1 |
-    Tee-Object -FilePath (Join-Path $logDir "screenshot.txt")
+    Write-StepLog -Path (Join-Path $logDir "screenshot.txt")
 $screenshotExit = $LASTEXITCODE
 $ErrorActionPreference = $previousErrorAction
 $screenshotGenerated = ($screenshotExit -eq 0) -and (Test-Path -LiteralPath $screenshotPath)
