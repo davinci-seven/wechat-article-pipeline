@@ -53,7 +53,7 @@ description: 把定稿Markdown和本地配图生成公众号兼容内联HTML、�
 2. 确认图片全部存在；缺图立即停止。
 3. 调用`tools/render_wechat.py`生成公众号兼容内联HTML、图片内嵌发布稳定版、390px手机截图页、图片证据表和完整性数据。
 4. 使用已安装的gzh-design脚本校验组件和HTML，并用其`wrap_preview.py`生成带一键复制按钮的预览页。
-5. 在390px视口实际打开手机截图页并分段截图，再调用`tools/stitch_screenshot.py`拼成长图。没有浏览器或截图能力时，把长截图标为“未运行”，不得用截图页代替并声称完成。
+5. 调用`tools/capture_mobile_screenshot.py`在390px视口截取完整长图，超高页面由脚本自行分段拼接。没有浏览器或截图能力时，把长截图标为“未运行”，不得用截图页代替并声称完成。
 6. 再次计算原稿SHA256，确认原稿未变化。
 7. 调用`tools/sanitize_public_output.py`生成隐私报告。HTML只扫描，不改写；报告里的警告需要人工判断。
 

@@ -25,15 +25,16 @@ $PSVersionTable.PSVersion
 pip install -r requirements.txt
 ```
 
-Pillow用于图片处理，Playwright用于生成390px手机端长截图。
+这一步只装Pillow，用于图片处理。
 
-Playwright还需要下载一次浏览器内核：
+390px手机端长截图另外需要Playwright。它是可选依赖，不在`requirements.txt`里，需要单独装，并下载一次浏览器内核：
 
 ```powershell
+pip install playwright
 python -m playwright install chromium
 ```
 
-不装Playwright也能跑完整条流水线，只是长截图那一步会告警并标记为“未运行”。
+不装也能跑完整条流水线，只是长截图那一步会告警并标记为“未运行”，其余产物照常生成。
 
 ## 3. 安装gzh-design
 
