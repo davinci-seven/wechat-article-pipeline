@@ -24,7 +24,7 @@
 
 ## 最终效果
 
-GitHub不能直接运行仓库里的本地HTML，所以这里放一张带复制按钮的预览页截图。实际生成后，点右上角按钮，再到公众号编辑器里`Ctrl+V`即可。
+GitHub不能直接运行仓库里的本地HTML，所以这里放一张预览页的示意图（不是demo文章的实拍）。实际生成后，点右上角按钮，再到公众号编辑器里`Ctrl+V`即可。
 
 <img src="docs/preview-copy-button-screenshot.svg" width="1000" alt="带复制到公众号按钮的预览页截图">
 
@@ -47,7 +47,7 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张带复制�
 1. 检查Markdown里的本地图片
 2. 生成公众号兼容的内联HTML
 3. 生成图片内嵌的发布稳定版
-4. 校验主题组件和最终HTML
+4. 校验gzh-design组件库和最终HTML
 5. 生成带复制按钮的浏览器预览
 6. 在390px视口截取完整长截图（需要Playwright，未安装时标记为“未运行”）
 7. 确认原始Markdown没有被修改
@@ -59,26 +59,15 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张带复制�
 
 不在自己的电脑前，也不需要远程回去开Codex。
 
-把下面这些文件上传给支持代码执行的ChatGPT、Claude或Codex：
-
-- 定稿Markdown
-- Markdown引用的全部图片
-- `tools/render_wechat.py`
-- `tools/capture_mobile_screenshot.py`
-- `tools/stitch_screenshot.py`
-
-然后复制这里的现成提示词：
+把定稿Markdown、全部配图，以及`tools/render_wechat.py`和`tools/sanitize_public_output.py`上传给支持代码执行的ChatGPT、Claude或Codex，再复制这里的现成提示词：
 
 **[docs/agent-prompt.md](docs/agent-prompt.md)**
 
-AI执行完成后，应返回一套zip，其中至少包含：
+能拿到：干净正文HTML、图片内嵌的发布稳定版、390px手机截图页、图片证据表、原稿哈希、正文顺序校验和隐私报告。
 
-- 干净正文HTML
-- 图片内嵌的发布稳定版
-- 带一键复制按钮的预览页
-- 390px手机端长截图
-- 图片证据表
-- 原稿哈希与HTML校验报告
+拿不到：带一键复制按钮的预览页和HTML合规校验（这两项来自gzh-design，不在本仓库里），以及390px长截图（需要Playwright，多数聊天环境跑不了浏览器）。把gzh-design的`scripts/`一并上传可以补上前两项。
+
+边界和完整说明见[AI执行提示词](docs/agent-prompt.md)。
 
 ## 新文章怎么用
 
@@ -121,11 +110,21 @@ AI执行完成后，应返回一套zip，其中至少包含：
 | `手机端结构脚本.md` | 手机端结构和排版检查基线 |
 | `source-integrity.json` | 原稿哈希、正文顺序和图片完整性信息 |
 | `image-map.json` | 后续上传公众号素材时使用的图片映射 |
-| `validation\` | 主题组件与HTML校验日志 |
+| `validation\` | 组件库、HTML校验和截图日志 |
 | `workflow-result.json` | 本次运行结果摘要 |
 | `privacy-audit.json` | 路径清理和敏感信息检查结果 |
 
 `tools/stitch_screenshot.py`可以把浏览器分段截图拼成一张390px手机端完整长图。
+
+## 支持哪些Markdown语法
+
+渲染器只实现公众号排版实际用得上的子集。遇到不支持的语法会直接报错停下并指出行号，不会默默把星号或大于号留在正文里。
+
+支持：一到三级标题、段落、有序和无序列表（单层）、代码块、行内代码、粗体、斜体、删除线、链接、引用块、表格（含列对齐）、分隔线、独占一行的图片。
+
+不支持，遇到即停：行内图片（图片必须独占一行）、嵌套列表、四级及以下标题、直接写在Markdown里的HTML标签。
+
+确实需要降级渲染时，加`--allow-unsupported`明确接受，结果里会记录降级了哪些行。
 
 ## 六套主题
 
@@ -175,7 +174,7 @@ AI执行完成后，应返回一套zip，其中至少包含：
 
 ## 这个仓库负责什么
 
-这个仓库没有把所有能力重新实现一遍，而是把公众号HTML生成、手机端检查和发布能力整理成一条适合Windows日常使用的流程。
+这个仓库没有把所有能力重新实现一遍，而是把公众号HTML生成、手机端检查和发布前准备整理成一条适合Windows日常使用的流程。本仓库不含任何自动上传或建草稿的代码。
 
 它补充了：
 
@@ -194,4 +193,4 @@ AI执行完成后，应返回一套zip，其中至少包含：
 
 本仓库自有代码采用MIT License，见[LICENSE](LICENSE)。
 
-依赖项目各自的许可证和使用范围，以它们各自仓库中的说明为准。
+gzh-design 采用 AGPL-3.0，本仓库不含也不重新分发它的源码，只在运行时以独立进程调用其命令行脚本。详见[致谢与项目边界](docs/credits.md#许可说明)。

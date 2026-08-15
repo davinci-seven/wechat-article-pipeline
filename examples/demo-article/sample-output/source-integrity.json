@@ -3,6 +3,7 @@
   "markdown": "<ARTICLE_DIR>\\终稿.md",
   "theme": "olive-journal",
   "theme_name": "橄榄手记",
+  "unsupported_syntax": [],
   "source_sha256_before": "852226f4a67ebad0d06747b3b13dd4509ce3bd660074cf4a7f51c387cd5bb404",
   "source_sha256_after": "852226f4a67ebad0d06747b3b13dd4509ce3bd660074cf4a7f51c387cd5bb404",
   "source_unchanged": true,

@@ -91,10 +91,10 @@ $previewHtml = [IO.Path]::Combine(
     [IO.Path]::GetFileNameWithoutExtension($stableHtml).Replace("_发布稳定版", "") + "_预览.html"
 )
 
-Write-Host "[2/8] 检查主题组件..."
+Write-Host "[2/8] 检查gzh-design组件库..."
 & $python $componentLint $gzhSkill 2>&1 |
     Write-StepLog -Path (Join-Path $logDir "component-lint.txt")
-if ($LASTEXITCODE -ne 0) { throw "主题组件校验存在ERROR" }
+if ($LASTEXITCODE -ne 0) { throw "gzh-design组件库校验存在ERROR" }
 
 Write-Host "[3/8] 校验干净正文HTML..."
 & $python $validator $cleanHtml 2>&1 |
@@ -156,5 +156,6 @@ if ($LASTEXITCODE -ne 0) { throw "隐私检查未通过，请查看privacy-audit
 $summary | ConvertTo-Json -Depth 4
 
 if ($OpenPreview) {
-    Start-Process -FilePath $mobilePage
+    # 打开带「复制到公众号」按钮的预览页；手机截图页没有按钮，只用于视觉检查。
+    Start-Process -FilePath $previewHtml
 }

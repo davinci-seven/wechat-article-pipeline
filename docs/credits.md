@@ -6,8 +6,9 @@
 
 ## gzh-design
 
-作者：[@isjiamu](https://github.com/isjiamu)  
-项目：<https://github.com/isjiamu/gzh-design-skill>
+作者：甲木（[@isjiamu](https://github.com/isjiamu)）与摸鱼小李  
+项目：<https://github.com/isjiamu/gzh-design-skill>  
+许可证：**AGPL-3.0**
 
 gzh-design提供了公众号兼容HTML的基础能力，包括内联样式组件、公众号限制检查和一键复制预览。
 
@@ -57,6 +58,10 @@ md2wechat提供公众号素材上传和草稿创建能力。
 
 本仓库自有代码采用MIT License。
 
-gzh-design、xiaowan-wechat-layout和md2wechat的许可证及使用范围，以各自仓库当前说明为准。本仓库仅通过安装和调用方式使用它们，不复制或重新分发其完整源码。
+gzh-design 采用 AGPL-3.0。本仓库不包含、不修改、也不重新分发它的源码，只在运行时以独立进程调用它提供的命令行脚本；使用者需要自行从原仓库安装。本仓库的主题配色参数参考了其公开的设计变量表，已在上面注明出处。
+
+如果你要基于本仓库二次开发或对外提供服务，请自行确认 AGPL-3.0 对你的使用方式的要求。
+
+xiaowan-wechat-layout 和 md2wechat 的许可证及使用范围，以各自仓库当前说明为准。
 
 对引用方式或项目边界有疑问，可以直接提交issue。

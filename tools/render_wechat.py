@@ -23,6 +23,32 @@ ORDERED_RE = re.compile(r"^\s*(\d+)\.\s+(.+)$")
 UNORDERED_RE = re.compile(r"^\s*[-*]\s+(.+)$")
 HR_RE = re.compile(r"^\s*(?:---+|\*\*\*+)\s*$")
 TABLE_SEPARATOR_CELL_RE = re.compile(r"^:?-{3,}:?$")
+QUOTE_RE = re.compile(r"^\s*>\s?(.*)$")
+
+# 渲染器只实现公众号排版实际用得上的Markdown子集。不支持的语法必须报错停下，
+# 不能默默把星号、大于号留在正文里，或者把行内图片吃掉还报成功。
+UNSUPPORTED_RULES: list[tuple[str, re.Pattern[str], str]] = [
+    (
+        "行内图片",
+        re.compile(r"(?<!^)!\[[^\]]*\]\([^)]+\)"),
+        "图片必须独占一行，不能夹在句子中间",
+    ),
+    (
+        "嵌套列表",
+        re.compile(r"^(?:\s{2,}|\t)+[-*+]\s+\S"),
+        "只支持单层列表，请改写成单层或分成多段",
+    ),
+    (
+        "四级及以下标题",
+        re.compile(r"^#{4,}\s+\S"),
+        "只支持一到三级标题",
+    ),
+    (
+        "HTML标签",
+        re.compile(r"^\s*<(?!!--)[a-zA-Z][^>]*>"),
+        "不支持在Markdown里直接写HTML",
+    ),
+]
 
 
 @dataclass(frozen=True)
@@ -197,6 +223,24 @@ def is_table_separator(line: str) -> bool:
     )
 
 
+def find_unsupported(source: str) -> list[dict]:
+    """扫描不支持的Markdown语法，返回行号和原因。"""
+    findings: list[dict] = []
+    in_code = False
+    for number, line in enumerate(source.replace("\r\n", "\n").split("\n"), 1):
+        if line.startswith("```"):
+            in_code = not in_code
+            continue
+        if in_code:
+            continue
+        for name, pattern, hint in UNSUPPORTED_RULES:
+            if pattern.search(line):
+                findings.append(
+                    {"line": number, "syntax": name, "hint": hint, "text": line.strip()[:120]}
+                )
+    return findings
+
+
 class TextExtractor(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -273,6 +317,19 @@ def parse_markdown(source: str) -> list[Block]:
             index += 1
             continue
 
+        quote_match = QUOTE_RE.match(line)
+        if quote_match:
+            quote_lines = [quote_match.group(1).strip()]
+            index += 1
+            while index < len(lines):
+                following = QUOTE_RE.match(lines[index])
+                if not following:
+                    break
+                quote_lines.append(following.group(1).strip())
+                index += 1
+            blocks.append(Block("quote", " ".join(x for x in quote_lines if x)))
+            continue
+
         ordered_match = ORDERED_RE.match(line)
         if ordered_match:
             items: list[str] = []
@@ -320,6 +377,8 @@ def parse_markdown(source: str) -> list[Block]:
 
 def inline_plain(text: str) -> str:
     text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"~~(.+?)~~", r"\1", text)
+    text = re.sub(r"(?<!\*)\*(?!\*)([^*\n]+)\*(?!\*)", r"\1", text)
     text = text.replace("**", "").replace("`", "")
     return html.unescape(text)
 
@@ -329,7 +388,13 @@ def leaf(text: str) -> str:
 
 
 def inline_html(text: str, theme: Theme) -> str:
-    token_re = re.compile(r"(`[^`]+`|\*\*.+?\*\*|\[[^\]]+\]\([^)]+\))")
+    token_re = re.compile(
+        r"(`[^`]+`"           # 行内代码
+        r"|\*\*.+?\*\*"        # 粗体
+        r"|~~.+?~~"            # 删除线
+        r"|(?<!\*)\*(?!\*)[^*\n]+\*(?!\*)"  # 斜体，避开粗体的星号
+        r"|\[[^\]]+\]\([^)]+\))"            # 链接
+    )
     cursor = 0
     output: list[str] = []
     for match in token_re.finditer(text):
@@ -347,6 +412,16 @@ def inline_html(text: str, theme: Theme) -> str:
             output.append(
                 f'<strong style="font-weight:700;color:{theme.strong};">'
                 f"{leaf(token[2:-2])}</strong>"
+            )
+        elif token.startswith("~~"):
+            output.append(
+                '<span style="text-decoration:line-through;opacity:0.7;">'
+                f"{leaf(token[2:-2])}</span>"
+            )
+        elif token.startswith("*"):
+            output.append(
+                '<span style="font-style:italic;">'
+                f"{leaf(token[1:-1])}</span>"
             )
         else:
             link_match = re.match(r"\[([^\]]+)\]\(([^)]+)\)", token)
@@ -475,7 +550,7 @@ def render_blocks(
                     f'color:{theme.accent};'
                     f'font-weight:700;">{marker}</span>'
                     f'<span leaf="" style="display:inline;color:{theme.list_text};">'
-                    f"{html.escape(inline_plain(item), quote=False)}</span></section>"
+                    f"{inline_html(item, theme)}</span></section>"
                 )
             list_parts.append("</section>")
             parts.append("".join(list_parts))
@@ -533,6 +608,14 @@ def render_blocks(
                 table_parts.append("</tr>")
             table_parts.append("</tbody></table></section>")
             parts.append("".join(table_parts))
+        elif block.kind == "quote":
+            parts.append(
+                f'<section style="margin:6px 0 {theme.para_gap};padding:12px 14px;'
+                f'border-left:4px solid {theme.accent_soft};background:{theme.h3_bg};">'
+                f'<p style="margin:0;font-size:{theme.font_size};'
+                f'line-height:{theme.line_height};color:{theme.text};">'
+                f'{inline_html(block.text, theme)}</p></section>'
+            )
         elif block.kind == "hr":
             parts.append(
                 '<section style="margin:34px auto;width:100%;height:1px;'
@@ -545,7 +628,7 @@ def render_blocks(
 def visible_fragments(blocks: list[Block]) -> list[str]:
     fragments: list[str] = []
     for block in blocks:
-        if block.kind in {"heading", "paragraph"}:
+        if block.kind in {"heading", "paragraph", "quote"}:
             fragments.append(inline_plain(block.text))
         elif block.kind == "image" and block.alt:
             fragments.append(block.alt)
@@ -669,6 +752,11 @@ def main() -> int:
         help="二级标题旁的英文小标签，逗号分隔；缺省或用完后统一为 CHAPTER",
     )
     parser.add_argument(
+        "--allow-unsupported",
+        action="store_true",
+        help="明确接受不支持语法被降级渲染，默认遇到就停",
+    )
+    parser.add_argument(
         "--list-themes",
         action="store_true",
         help="列出全部可用主题后退出",
@@ -696,6 +784,22 @@ def main() -> int:
 
     source = markdown_path.read_text(encoding="utf-8-sig")
     before_hash = sha256(markdown_path)
+
+    unsupported = find_unsupported(source)
+    if unsupported and not args.allow_unsupported:
+        print(
+            json.dumps(
+                {
+                    "ok": False,
+                    "reason": "存在本渲染器不支持的Markdown语法",
+                    "unsupported": unsupported,
+                    "hint": "改写原稿，或加 --allow-unsupported 明确接受降级渲染",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 4
     blocks = parse_markdown(source)
     image_rows: list[dict] = []
     clean_sources: dict[int, str] = {}
@@ -785,6 +889,7 @@ main{box-sizing:border-box;width:100%;max-width:390px;margin:0 auto;padding:8px;
         "markdown": str(markdown_path),
         "theme": theme.key,
         "theme_name": theme.name_cn,
+        "unsupported_syntax": unsupported,
         "source_sha256_before": before_hash,
         "source_sha256_after": after_hash,
         "source_unchanged": before_hash == after_hash,

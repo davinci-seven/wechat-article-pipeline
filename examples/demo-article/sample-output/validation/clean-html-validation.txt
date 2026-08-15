@@ -1,5 +1,5 @@
 📋 公众号 HTML 合规校验: <LAYOUT_ROOT>\output\终稿_排版_橄榄手记(olive-journal).html
-   span leaf 包裹: 44 处
+   span leaf 包裹: 50 处
 
 ✅ 完全合规，可直接粘贴到公众号编辑器
 
