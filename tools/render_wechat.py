@@ -12,7 +12,7 @@ import mimetypes
 import re
 import shutil
 import sys
-from dataclasses import dataclass
+from dataclasses import MISSING, dataclass, fields
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -85,8 +85,25 @@ class Theme:
     letter_spacing: str
     para_gap: str
     chapter_gap: str
+    # 下面这些有默认值。内置六套不填，排版结果与原来一致。
+    # 账号主题用 layout 选另一套结构，其余字段只是配色和固定刊头。
+    layout: str = "standard"
+    account: str = ""
+    tagline: str = ""
+    description: str = ""
+    body_font: str = ""
+    heading_font: str = ""
+    list_label: str = ""
+    takeaway_label: str = ""
+    step_label: str = ""
+    quote_label: str = ""
+    seal: str = ""
+    image_radius: str = "4px"
+    image_border_width: str = "1px"
 
 
+# 内置六套共用 standard 布局，参数不要随手改。
+# 新账号主题放到仓库 themes/*.json，格式见 docs/themes.md。
 THEMES: dict[str, Theme] = {
     "olive-journal": Theme(
         key="olive-journal", name_cn="橄榄手记",
@@ -176,6 +193,59 @@ THEMES: dict[str, Theme] = {
 
 DEFAULT_THEME = "olive-journal"
 
+# standard 是原来的六套结构。其余名字在 tools/layouts.py 里各有一套固定版式。
+LAYOUTS = {"standard", "diary", "gazette", "memo", "archive", "kitchen"}
+
+
+def theme_from_dict(data: dict, source: str) -> Theme:
+    """把一份主题定义收成 Theme。缺字段或写错字段直接报错，避免静默套用别的主题。"""
+    if not isinstance(data, dict):
+        raise ValueError(f"{source} 的内容必须是一个 JSON 对象")
+    allowed = {item.name for item in fields(Theme)}
+    unknown = sorted(set(data) - allowed)
+    if unknown:
+        raise ValueError(f"{source} 有无法识别的字段：{', '.join(unknown)}")
+    required = [
+        item.name
+        for item in fields(Theme)
+        if item.default is MISSING and item.default_factory is MISSING
+    ]
+    missing = [name for name in required if name not in data]
+    if missing:
+        raise ValueError(f"{source} 缺少字段：{', '.join(missing)}")
+    for key, value in data.items():
+        if not isinstance(value, str):
+            raise ValueError(f"{source} 的 {key} 必须是字符串")
+    layout = data.get("layout", "standard")
+    if layout not in LAYOUTS:
+        known = "、".join(sorted(LAYOUTS))
+        raise ValueError(f"{source} 的 layout 必须是其中之一：{known}")
+    key = data["key"]
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", key):
+        raise ValueError(f"{source} 的 key 只能用小写字母、数字和连字符")
+    return Theme(**data)
+
+
+def load_theme_directory(directory: Path | None = None) -> None:
+    """读入 themes/*.json。文件名必须和 key 一致，且不能覆盖内置主题。"""
+    directory = directory or Path(__file__).resolve().parent.parent / "themes"
+    if not directory.is_dir():
+        return
+    for path in sorted(directory.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{path.name} 不是合法的 JSON：{exc}") from exc
+        theme = theme_from_dict(data, path.name)
+        if theme.key != path.stem:
+            raise ValueError(f"{path.name} 的 key 是 {theme.key}，必须和文件名一致")
+        if theme.key in THEMES:
+            raise ValueError(f"{path.name} 的 key 与已有主题重名")
+        THEMES[theme.key] = theme
+
+
+load_theme_directory()
+
 
 @dataclass
 class Block:
@@ -188,6 +258,27 @@ class Block:
     src: str = ""
     rows: list[list[str]] | None = None
     aligns: list[str] | None = None
+
+
+@dataclass
+class ImageView:
+    """一张图在预览和复制稿里的呈现。show 为假时输出占位，不输出 img。"""
+
+    src: str
+    alt: str
+    marker: str = ""
+    show: bool = True
+
+
+def resolve_view(
+    block_index: int,
+    block: Block,
+    image_sources: dict[int, str],
+    image_views: dict[int, ImageView] | None,
+) -> ImageView:
+    if image_views is not None:
+        return image_views[block_index]
+    return ImageView(src=image_sources[block_index], alt=block.alt, show=True)
 
 
 def column_aligns(separator_line: str) -> list[str]:
@@ -409,10 +500,17 @@ def inline_html(text: str, theme: Theme) -> str:
                 f"{leaf(token[1:-1])}</code>"
             )
         elif token.startswith("**"):
-            output.append(
-                f'<strong style="font-weight:700;color:{theme.strong};">'
-                f"{leaf(token[2:-2])}</strong>"
-            )
+            if theme.layout == "gazette":
+                output.append(
+                    '<strong style="font-weight:700;color:'
+                    f'{theme.strong};background:{theme.accent_soft};padding:0 3px;">'
+                    f"{leaf(token[2:-2])}</strong>"
+                )
+            else:
+                output.append(
+                    f'<strong style="font-weight:700;color:{theme.strong};">'
+                    f"{leaf(token[2:-2])}</strong>"
+                )
         elif token.startswith("~~"):
             output.append(
                 '<span style="text-decoration:line-through;opacity:0.7;">'
@@ -473,12 +571,52 @@ def image_section(src: str, alt: str, theme: Theme, first: bool = False) -> str:
     )
 
 
+def placeholder_section(theme: Theme, view: ImageView, first: bool = False) -> str:
+    """粘贴稿里的插图位置。公众号编辑器接不住本地图片，所以这里只留编号。"""
+    top = "18px" if first else "30px"
+    hint = "在这里插入同名图片，插好后删掉这几行提示"
+    caption = (
+        f'<p style="margin:8px 0 0;text-align:center;font-size:{theme.font_size};'
+        f'line-height:1.6;color:{theme.text};">{leaf(view.alt)}</p>'
+        if view.alt
+        else ""
+    )
+    return (
+        f'<section style="margin:{top} 0 0;padding:18px 14px;text-align:center;'
+        f'background:{theme.h3_bg};border:2px dashed {theme.accent};">'
+        f'<p style="margin:0;font-size:{theme.font_size};line-height:1.6;font-weight:700;'
+        f'color:{theme.heading};">{leaf(view.marker)}</p>'
+        f'<p style="margin:8px 0 0;font-size:{theme.font_size};line-height:1.6;'
+        f'color:{theme.text};">{leaf(hint)}</p>'
+        f"{caption}</section>"
+    )
+
+
+def picture_html(theme: Theme, view: ImageView, first: bool = False) -> str:
+    """standard 布局用。预览可以带标记，复制稿在 show 为假时换成占位框。"""
+    if not view.show:
+        return placeholder_section(theme, view, first=first)
+    rendered = image_section(view.src, view.alt, theme, first=first)
+    if not view.marker:
+        return rendered
+    note = (
+        f'<p style="margin:4px 8px 0;text-align:center;font-size:12px;line-height:1.65;'
+        f'color:{theme.caption};">{leaf(view.marker)}</p>'
+    )
+    return rendered + note
+
+
 def render_blocks(
     blocks: list[Block],
     image_sources: dict[int, str],
     theme: Theme,
     section_labels: list[str] | None = None,
+    image_views: dict[int, ImageView] | None = None,
 ) -> str:
+    if theme.layout != "standard":
+        from layouts import render_themed
+
+        return render_themed(blocks, image_sources, theme, section_labels, image_views)
     parts: list[str] = [
         '<section style="box-sizing:border-box;width:100%;max-width:100%;margin:0 auto;'
         f'padding:20px 16px 34px;background:{theme.page_bg};color:{theme.text};'
@@ -532,8 +670,11 @@ def render_blocks(
                 f'{inline_html(block.text, theme)}</p>'
             )
         elif block.kind == "image":
-            src = image_sources[block_index]
-            parts.append(image_section(src, block.alt, theme, first=image_index == 0))
+            if image_views is not None:
+                parts.append(picture_html(theme, image_views[block_index], first=image_index == 0))
+            else:
+                src = image_sources[block_index]
+                parts.append(image_section(src, block.alt, theme, first=image_index == 0))
             image_index += 1
         elif block.kind in {"ul", "ol"}:
             items = block.items or []
@@ -766,7 +907,11 @@ def main() -> int:
     if args.list_themes:
         for theme in THEMES.values():
             marker = "（默认）" if theme.key == DEFAULT_THEME else ""
-            print(f"{theme.key:<18}{theme.name_cn:<8}主色 {theme.accent}{marker}")
+            account = f"  {theme.account}" if theme.account else ""
+            print(
+                f"{theme.key:<18}{theme.name_cn}  {theme.layout:<10}"
+                f"主色 {theme.accent}{account}{marker}"
+            )
         return 0
 
     if not args.markdown or not args.output_root:

@@ -2,6 +2,8 @@
 
 安装后，可以把定稿Markdown和配图交给Codex或其他支持本地Skill的代码执行环境，让它按仓库里的固定规则完成排版、预览、截图和检查。
 
+只想要能粘贴进公众号的那一个 HTML 时，不用走这套完整检查，直接看 README 的「一键粘贴模式」。
+
 ## 装到Codex
 
 需要先有Git和Python 3.10+。Windows还需要PowerShell 5.1或PowerShell 7。

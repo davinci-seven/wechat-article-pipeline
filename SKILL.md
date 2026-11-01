@@ -7,6 +7,8 @@ description: 把定稿Markdown和本地配图生成公众号兼容内联HTML、�
 
 把已经定稿的Markdown和本地配图交给本仓库现有脚本处理，输出可复制到公众号的HTML、手机预览和可核对的报告。
 
+如果用户明确只要一个能粘贴进公众号的 HTML，不要长截图和检查报告，用 `tools/paste_wechat.py`，不要走下面的完整流水线。用法见 README 的「一键粘贴模式」。
+
 ## 输入
 
 - 一份定稿Markdown
