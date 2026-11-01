@@ -6,9 +6,9 @@
 
     python tools/paste_wechat.py --md 文章.md --theme laochen-shebao -o out/
 
-用浏览器打开生成的 HTML，点「一键复制到公众号」，再到 mp.weixin.qq.com
-新建图文后粘贴。本地图片不会进编辑器，正文里留【插图N】，文件在旁边的
-images 文件夹。原因见 docs/paste-images.md。
+用浏览器打开生成的 HTML。「复制标题」只复制标题，「复制正文」用选区复制
+渲染后的正文节点，图片以 data URI 嵌在这个节点里，会跟着进公众号编辑器。
+封面和标题不在正文节点里。images 文件夹只是备用原图。
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from pathlib import Path
 from render_wechat import (
     DEFAULT_THEME,
     THEMES,
+    Block,
     ImageView,
     data_uri,
     find_unsupported,
@@ -37,7 +38,8 @@ from render_wechat import (
 
 _UNSAFE_NAME = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
 _NUMBERED_FILE = re.compile(r"\d{2}-.+")
-STEPS = "复制 → 打开公众号后台新建图文 → 粘贴 → 检查图片 → 发表"
+_FRONT_MATTER = re.compile(r"\A---\r?\n(.*?)\r?\n---\r?\n?", re.S)
+_COVER_NAME = re.compile(r"封面\..+")
 
 
 def _utf8_stdio() -> None:
@@ -66,29 +68,44 @@ def html_destination(markdown_path: Path, output: Path) -> tuple[Path, Path]:
     return output / f"{stem}.html", output / "images"
 
 
-def plain_text(blocks, markers: dict[int, str], account: str) -> str:
-    lines: list[str] = []
-    if account:
-        lines.append(account)
-    for index, block in enumerate(blocks):
-        if block.kind in {"heading", "paragraph", "quote"}:
-            lines.append(inline_plain(block.text))
-        elif block.kind == "image":
-            if markers.get(index):
-                lines.append(markers[index])
-                lines.append("在这里插入同名图片，插好后删掉这几行提示")
-            if block.alt:
-                lines.append(block.alt)
-        elif block.kind in {"ul", "ol"}:
-            lines.extend(inline_plain(item) for item in (block.items or []))
-        elif block.kind == "code":
-            lines.append(block.text)
-        elif block.kind == "table":
-            if block.items:
-                lines.append(" ".join(inline_plain(cell) for cell in block.items))
-            for row in block.rows or []:
-                lines.append(" ".join(inline_plain(cell) for cell in row))
-    return "\n\n".join(line for line in lines if line.strip())
+def split_front_matter(source: str) -> tuple[dict[str, str], str, int]:
+    """读文首 --- 之间的 title 和 cover。返回元数据、剩下的正文、占掉的行数。"""
+    matched = _FRONT_MATTER.match(source)
+    if not matched:
+        return {}, source, 0
+    meta: dict[str, str] = {}
+    for line in matched.group(1).splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or ":" not in stripped:
+            continue
+        key, value = stripped.split(":", 1)
+        meta[key.strip().lower()] = value.strip().strip("\"'")
+    skipped = source[: matched.end()].count("\n")
+    return meta, source[matched.end() :], skipped
+
+
+def take_title(blocks: list[Block], meta: dict[str, str], stem: str) -> tuple[str, list[Block]]:
+    """标题单独给公众号标题框。一级标题（没有的话用文首标题或第一处标题）不进正文。"""
+    title = (meta.get("title") or "").strip()
+    remove_at: int | None = None
+    h1_at = next(
+        (index for index, block in enumerate(blocks) if block.kind == "heading" and block.level == 1),
+        None,
+    )
+    if h1_at is not None:
+        if not title:
+            title = inline_plain(blocks[h1_at].text)
+        remove_at = h1_at
+    elif not title:
+        heading_at = next((index for index, block in enumerate(blocks) if block.kind == "heading"), None)
+        if heading_at is not None:
+            title = inline_plain(blocks[heading_at].text)
+            remove_at = heading_at
+        else:
+            title = stem
+    if remove_at is None:
+        return title, blocks
+    return title, [block for index, block in enumerate(blocks) if index != remove_at]
 
 
 def build_page(
@@ -97,11 +114,11 @@ def build_page(
     theme_name: str,
     theme_key: str,
     account: str,
-    preview_html: str,
-    copy_html: str,
-    copy_text: str,
+    body_html: str,
     note: str,
+    steps: str,
     file_list_html: str,
+    cover_html: str,
 ) -> str:
     label_bits = []
     if account:
@@ -110,12 +127,13 @@ def build_page(
         label_bits.append(theme_name)
     label_bits.append(theme_key)
     eyebrow = html.escape(" · ".join(label_bits))
+    safe_title = html.escape(title)
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{html.escape(title)}</title>
+<title>{safe_title}</title>
 <style>
 body {{ margin:0; background:#e8e4de; color:#1f2933;
   font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
@@ -123,7 +141,7 @@ body {{ margin:0; background:#e8e4de; color:#1f2933;
 .paste-bar {{ position:sticky; top:0; z-index:10; background:#ffffff;
   border-bottom:1px solid #e5e1da; padding:16px 16px 14px; }}
 .paste-bar .eyebrow {{ margin:0 0 6px; text-align:center; font-size:13px; letter-spacing:1px; color:#6b6258; }}
-.paste-bar .steps {{ margin:0 auto 12px; max-width:640px; text-align:center;
+.paste-bar .steps {{ margin:0 auto 12px; max-width:680px; text-align:center;
   font-size:16px; line-height:1.6; font-weight:700; color:#1a1a1a; }}
 .paste-btn {{ display:block; width:min(520px, 100%); margin:0 auto; padding:16px 18px;
   background:#07c160; color:#ffffff; border:0; border-radius:14px; cursor:pointer;
@@ -134,6 +152,17 @@ body {{ margin:0; background:#e8e4de; color:#1f2933;
   font-size:14px; line-height:1.7; color:#3f3a34; }}
 .phone {{ width:min(390px, 100%); margin:18px auto 8px; background:#ffffff;
   box-shadow:0 10px 28px rgba(40,32,24,.12); }}
+.cover-card, .title-card {{ box-sizing:border-box; padding:16px 16px 8px; background:#ffffff; }}
+.cover-card img {{ display:block; width:100%; height:auto; }}
+.cover-label, .title-kicker {{ margin:0 0 8px; font-size:13px; line-height:1.5;
+  font-weight:700; letter-spacing:1px; color:#6b6258; }}
+.cover-download {{ display:inline-block; margin:8px 0 4px; font-size:14px; color:#1B4F8A; }}
+.title-card {{ padding-bottom:14px; border-bottom:1px solid #e5e1da; }}
+.article-title {{ margin:0; font-size:22px; line-height:1.45; font-weight:800; color:#1a1a1a; }}
+.title-btn {{ display:inline-block; margin:10px 0 0; padding:6px 12px; font-size:14px;
+  font-weight:700; color:#1f2933; background:#ffffff; border:1px solid #c9c3ba;
+  border-radius:8px; cursor:pointer; }}
+.title-btn:hover {{ background:#f6f4f1; }}
 .files {{ width:min(390px, 100%); margin:0 auto 40px; padding:4px 14px 8px;
   box-sizing:border-box; font-size:14px; line-height:1.7; color:#3f3a34; }}
 .files h2 {{ margin:8px 0; font-size:15px; }}
@@ -142,31 +171,35 @@ body {{ margin:0; background:#e8e4de; color:#1f2933;
 .paste-toast {{ position:fixed; left:50%; bottom:20px; transform:translateX(-50%);
   max-width:min(520px, 92vw); padding:12px 16px; border-radius:10px; background:#1a1a1a;
   color:#ffffff; font-size:15px; line-height:1.55; text-align:center; opacity:0;
-  pointer-events:none; transition:opacity .2s; }}
+  pointer-events:none; transition:opacity .2s; z-index:20; }}
 .paste-toast.show {{ opacity:1; }}
 </style>
 </head>
 <body>
 <header class="paste-bar">
   <p class="eyebrow">{eyebrow}</p>
-  <p class="steps">{html.escape(STEPS)}</p>
-  <button class="paste-btn" id="paste-btn" type="button">一键复制到公众号</button>
+  <p class="steps">{html.escape(steps)}</p>
+  <button class="paste-btn" id="paste-btn" type="button">复制正文</button>
   <p class="paste-note">{html.escape(note)}</p>
 </header>
 <main>
-  <div class="phone" id="preview">
-{preview_html}
+  <div class="phone">
+    {cover_html}
+    <section class="title-card">
+      <p class="title-kicker">标题（填到公众号标题框，不会进正文）</p>
+      <p class="article-title" id="article-title">{safe_title}</p>
+      <button class="title-btn" id="copy-title" type="button">复制标题</button>
+    </section>
+    <div id="paste-body">
+{body_html}
+    </div>
   </div>
   {file_list_html}
 </main>
-<textarea id="copy-html" hidden>{html.escape(copy_html)}</textarea>
-<textarea id="copy-text" hidden>{html.escape(copy_text)}</textarea>
 <div class="paste-toast" id="paste-toast" role="status"></div>
 <script>
 (function () {{
-  var button = document.getElementById("paste-btn");
   var toast = document.getElementById("paste-toast");
-  var idle = button.textContent;
   var timer = 0;
   function show(message) {{
     toast.textContent = message;
@@ -174,43 +207,62 @@ body {{ margin:0; background:#e8e4de; color:#1f2933;
     clearTimeout(timer);
     timer = setTimeout(function () {{ toast.className = "paste-toast"; }}, 4200);
   }}
-  button.addEventListener("click", function () {{
-    var markup = document.getElementById("copy-html").value;
-    var text = document.getElementById("copy-text").value;
-    var done = false;
-    function onCopy(event) {{
-      if (!event.clipboardData) return;
-      event.clipboardData.setData("text/html", markup);
-      event.clipboardData.setData("text/plain", text);
-      event.preventDefault();
-      done = true;
+  function fallbackCopy(el) {{
+    var markup = el.innerHTML;
+    var text = el.innerText || el.textContent || "";
+    if (navigator.clipboard && window.ClipboardItem && navigator.clipboard.write) {{
+      try {{
+        return navigator.clipboard.write([
+          new ClipboardItem({{
+            "text/html": new Blob([markup], {{ type: "text/html" }}),
+            "text/plain": new Blob([text], {{ type: "text/plain" }})
+          }})
+        ]);
+      }} catch (error) {{
+        return Promise.reject(error);
+      }}
     }}
-    document.addEventListener("copy", onCopy);
-    var holder = document.createElement("textarea");
-    holder.value = text;
-    holder.setAttribute("readonly", "");
-    holder.style.position = "fixed";
-    holder.style.top = "0";
-    holder.style.left = "-9999px";
-    document.body.appendChild(holder);
-    holder.focus();
-    holder.select();
+    if (navigator.clipboard && navigator.clipboard.writeText) {{
+      return navigator.clipboard.writeText(text);
+    }}
+    return Promise.reject(new Error("no clipboard"));
+  }}
+  function copyElement(el) {{
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    var ok = false;
     try {{
-      document.execCommand("copy");
+      ok = document.execCommand("copy");
     }} catch (error) {{
-      done = false;
-    }} finally {{
-      document.removeEventListener("copy", onCopy);
-      if (holder.parentNode) holder.parentNode.removeChild(holder);
-      button.focus();
+      ok = false;
     }}
-    if (done) {{
-      button.textContent = "已复制，去公众号粘贴";
-      show("已复制。打开公众号后台，新建图文，在正文里按 Ctrl+V（Mac 用 ⌘+V）。本地图片要按【插图】手动插入。");
+    selection.removeAllRanges();
+    if (ok) return Promise.resolve("selection");
+    return fallbackCopy(el);
+  }}
+  document.getElementById("paste-btn").addEventListener("click", function () {{
+    var button = document.getElementById("paste-btn");
+    var idle = "复制正文";
+    copyElement(document.getElementById("paste-body")).then(function () {{
+      button.textContent = "正文已复制";
+      show("正文已复制。到公众号正文里粘贴，图片会一起过去。");
       setTimeout(function () {{ button.textContent = idle; }}, 2500);
-    }} else {{
-      show("没有复制成功。请换 Chrome 或 Edge 打开这个文件，再点一次按钮。");
-    }}
+    }}, function () {{
+      show("没有复制成功。请换 Chrome、Edge 或手机浏览器打开这个文件，再点一次。");
+    }});
+  }});
+  document.getElementById("copy-title").addEventListener("click", function () {{
+    var button = document.getElementById("copy-title");
+    copyElement(document.getElementById("article-title")).then(function () {{
+      button.textContent = "标题已复制";
+      show("标题已复制。填进公众号的标题框，不要贴进正文。");
+      setTimeout(function () {{ button.textContent = "复制标题"; }}, 2500);
+    }}, function () {{
+      show("标题没有复制成功。请再点一次「复制标题」。");
+    }});
   }});
 }})();
 </script>
@@ -222,53 +274,72 @@ body {{ margin:0; background:#e8e4de; color:#1f2933;
 
 def file_list(records: list[dict]) -> str:
     local = [item for item in records if item["kind"] == "local"]
-    remote = [item for item in records if item["kind"] == "remote"]
-    if not records:
+    if not local:
         return ""
-    items: list[str] = []
-    for item in records:
+    items = []
+    for item in local:
         alt = html.escape(item["alt"] or "（无图注）")
-        if item["kind"] == "local":
-            items.append(
-                f"<li><b>{html.escape(item['export_name'])}</b>　{html.escape(item['marker'])}　{alt}</li>"
-            )
-        else:
-            items.append(f"<li>外链图片，粘贴时由公众号尝试自动保存　{alt}</li>")
-    title = "要手动插入的图片" if local else "文中的网络图片"
-    extra = ""
-    if local and remote:
-        extra = "<p>网络图片没有对应文件，粘贴后确认它们是否出现。</p>"
+        items.append(f"<li><b>{html.escape(item['export_name'])}</b>　{alt}</li>")
     return (
         '<section class="files">'
-        f"<h2>{title}</h2><ol>{''.join(items)}</ol>{extra}</section>"
+        "<h2>备用原图</h2>"
+        "<p>正文里的图会跟着「复制正文」一起过去。只有粘贴后缺了图，才按这个顺序从 images 文件夹补。</p>"
+        f"<ol>{''.join(items)}</ol></section>"
     )
 
 
-def note_for(records: list[dict]) -> str:
-    local = any(item["kind"] == "local" for item in records)
-    remote = any(item["kind"] == "remote" for item in records)
-    if not records:
-        return "这篇没有配图。点按钮复制，到公众号粘贴后通读一遍再发表。请点按钮，不要自己全选页面。"
-    if local and remote:
-        return (
-            "预览里能看到图，但本地图片粘贴不过去，正文会留下【插图】。"
-            "请按旁边 images 文件夹里的同名文件插入，插好后删掉提示。"
-            "网络图片由公众号在粘贴时尝试自动保存。请点按钮复制，不要自己全选页面。"
-        )
-    if local:
-        return (
-            "预览里能看到图，粘贴到公众号时本地图片不会跟着过去。"
-            "正文【插图1】的位置，用旁边 images 文件夹里的同名文件插入，插好后删掉提示。"
-            "请点按钮，不要自己全选页面。"
-        )
-    return "配图是网络地址。粘贴后确认图片是否出现；没出现就在公众号里重新上传。请点按钮复制，不要自己全选页面。"
+def locate_local(article_dir: Path, raw: str, *, also_cwd: bool) -> Path | None:
+    """本地文件返回路径；http(s) 返回 None。找不到时返回解析后的路径，调用方再判断是否存在。"""
+    if re.match(r"^https?://", raw, re.I):
+        return None
+    raw_path = Path(raw)
+    candidates: list[Path] = []
+    if raw_path.is_absolute():
+        candidates.append(raw_path)
+    else:
+        if also_cwd:
+            candidates.append(Path.cwd() / raw_path)
+        candidates.append(article_dir / raw_path)
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate.resolve()
+    return candidates[-1].resolve()
+
+
+def cover_html(src: str, download_href: str, download_name: str) -> str:
+    return (
+        '<section class="cover-card">'
+        '<p class="cover-label">封面（在后台单独上传）</p>'
+        f'<img src="{html.escape(src, quote=True)}" alt="封面">'
+        f'<a class="cover-download" href="{html.escape(download_href, quote=True)}" '
+        f'download="{html.escape(download_name, quote=True)}">下载封面</a>'
+        "</section>"
+    )
+
+
+def note_for(has_images: bool, has_cover: bool) -> str:
+    parts = ["点「复制正文」，不要自己全选页面，否则标题和按钮也会被复制。"]
+    if has_images:
+        parts.append("正文里的图片会跟着过去。")
+    if has_cover:
+        parts.append("封面用上面的下载链接保存，到公众号后台单独上传，不要贴进正文。")
+    return "".join(parts)
+
+
+def steps_for(has_cover: bool) -> str:
+    steps = "复制标题 → 打开公众号后台新建图文，填进标题框 → 复制正文 → 粘贴到正文 → 检查图片"
+    if has_cover:
+        steps += " → 封面单独上传"
+    return steps + " → 发表"
 
 
 def clear_stale_images(image_dir: Path, written: set[str]) -> None:
     if not image_dir.is_dir():
         return
     for existing in image_dir.iterdir():
-        if existing.is_file() and _NUMBERED_FILE.fullmatch(existing.name) and existing.name not in written:
+        if not existing.is_file() or existing.name in written:
+            continue
+        if _NUMBERED_FILE.fullmatch(existing.name) or _COVER_NAME.fullmatch(existing.name):
             existing.unlink()
 
 
@@ -295,6 +366,10 @@ def main(argv: list[str] | None = None) -> int:
         help=f"视觉主题，默认 {DEFAULT_THEME}。可用 --list-themes 查看",
     )
     parser.add_argument("-o", "--output", dest="output", help="输出目录，或一个 .html 文件路径")
+    parser.add_argument(
+        "--cover",
+        help="封面图路径。只显示在页面上并提供下载，不进正文。也可写在文首 cover:",
+    )
     parser.add_argument("--list-themes", action="store_true", help="列出全部主题后退出")
     parser.add_argument(
         "--allow-unsupported",
@@ -320,7 +395,10 @@ def main(argv: list[str] | None = None) -> int:
     theme = THEMES[args.theme]
     source = markdown_path.read_text(encoding="utf-8-sig")
     before_hash = sha256(markdown_path)
-    unsupported = find_unsupported(source)
+    meta, body, skipped_lines = split_front_matter(source)
+    unsupported = find_unsupported(body)
+    for item in unsupported:
+        item["line"] += skipped_lines
     if unsupported and not args.allow_unsupported:
         print("这篇 Markdown 有排版器不支持的写法，已停止：", file=sys.stderr)
         for item in unsupported:
@@ -331,13 +409,12 @@ def main(argv: list[str] | None = None) -> int:
         print("改原稿，或加上 --allow-unsupported 接受降级。", file=sys.stderr)
         return 4
 
-    blocks = parse_markdown(source)
+    parsed = parse_markdown(body)
+    title_text, blocks = take_title(parsed, meta, markdown_path.stem)
     article_dir = markdown_path.parent
     html_path, image_dir = html_destination(markdown_path, Path(args.output))
 
-    preview_views: dict[int, ImageView] = {}
-    copy_views: dict[int, ImageView] = {}
-    markers: dict[int, str] = {}
+    image_views: dict[int, ImageView] = {}
     records: list[dict] = []
     missing: list[str] = []
     written: set[str] = set()
@@ -348,33 +425,41 @@ def main(argv: list[str] | None = None) -> int:
             continue
         resolved = resolve_image(article_dir, block.src)
         if resolved is None:
-            view = ImageView(src=block.src, alt=block.alt, show=True)
-            preview_views[block_index] = view
-            copy_views[block_index] = view
-            records.append({"kind": "remote", "alt": block.alt, "marker": "", "export_name": ""})
+            image_views[block_index] = ImageView(src=block.src, alt=block.alt, show=True)
+            records.append({"kind": "remote", "alt": block.alt, "export_name": ""})
             continue
         if not resolved.is_file():
             missing.append(str(resolved))
             continue
         local_number += 1
         export_name = f"{local_number:02d}-{safe_filename(resolved.name)}"
-        marker = f"【插图{local_number}：{export_name}】"
         image_dir.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(resolved, image_dir / export_name)
         written.add(export_name)
-        markers[block_index] = marker
-        preview_views[block_index] = ImageView(
-            src=data_uri(resolved), alt=block.alt, marker=marker, show=True
+        image_views[block_index] = ImageView(
+            src=data_uri(resolved), alt=block.alt, show=True
         )
-        copy_views[block_index] = ImageView(src="", alt=block.alt, marker=marker, show=False)
-        records.append(
-            {
-                "kind": "local",
-                "alt": block.alt,
-                "marker": marker,
-                "export_name": export_name,
-            }
-        )
+        records.append({"kind": "local", "alt": block.alt, "export_name": export_name})
+
+    cover_raw = (args.cover or meta.get("cover") or "").strip()
+    cover_block = ""
+    if cover_raw:
+        resolved_cover = locate_local(article_dir, cover_raw, also_cwd=bool(args.cover))
+        if resolved_cover is None:
+            cover_block = cover_html(cover_raw, cover_raw, "封面")
+        elif not resolved_cover.is_file():
+            missing.append(str(resolved_cover))
+        else:
+            suffix = resolved_cover.suffix.lower() or ".jpg"
+            cover_name = f"封面{suffix}"
+            image_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(resolved_cover, image_dir / cover_name)
+            written.add(cover_name)
+            cover_block = cover_html(
+                data_uri(resolved_cover),
+                f"images/{cover_name}",
+                cover_name,
+            )
 
     if missing:
         print("缺少图片，已停止，没有生成 HTML：", file=sys.stderr)
@@ -383,49 +468,40 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     clear_stale_images(image_dir, written)
-    preview_html = render_blocks(blocks, {}, theme, image_views=preview_views)
-    copy_html = render_blocks(blocks, {}, theme, image_views=copy_views)
+    body_html = render_blocks(blocks, {}, theme, image_views=image_views)
     fragments = visible_fragments(blocks)
-    preview_ok, preview_missing = verify_order(preview_html, fragments)
-    copy_ok, copy_missing = verify_order(copy_html, fragments)
+    body_ok, body_missing = verify_order(body_html, fragments)
     after_hash = sha256(markdown_path)
-    if re.search(r'src="data:image', copy_html) or re.search(r"<script", copy_html, re.I):
-        print("复制用的正文里出现了不能粘贴进公众号的内容，已停止。", file=sys.stderr)
+    if "<script" in body_html.lower():
+        print("正文里出现了脚本，已停止。", file=sys.stderr)
         return 3
-    if not (preview_ok and copy_ok and before_hash == after_hash):
+    if not (body_ok and before_hash == after_hash):
         print("正文顺序校验没通过，没有写出 HTML。", file=sys.stderr)
-        for item in preview_missing + copy_missing:
+        for item in body_missing:
             print(f"- {item}", file=sys.stderr)
         return 3
 
-    title_text = next(
-        (block.text for block in blocks if block.kind == "heading" and block.level == 1),
-        markdown_path.stem,
-    )
-    page_title = f"{title_text} · {theme.account or theme.name_cn}"
+    has_local = any(item["kind"] == "local" for item in records)
     page = build_page(
-        title=page_title,
+        title=title_text,
         theme_name=theme.name_cn,
         theme_key=theme.key,
         account=theme.account,
-        preview_html=preview_html,
-        copy_html=copy_html,
-        copy_text=plain_text(blocks, markers, theme.account),
-        note=note_for(records),
+        body_html=body_html,
+        note=note_for(has_local or any(item["kind"] == "remote" for item in records), bool(cover_block)),
+        steps=steps_for(bool(cover_block)),
         file_list_html=file_list(records),
+        cover_html=cover_block,
     )
     html_path.parent.mkdir(parents=True, exist_ok=True)
     html_path.write_text(page, encoding="utf-8")
 
     print(f"已生成：{html_path}")
     print(f"主题：{theme.name_cn}（{theme.key}）")
-    print("用浏览器打开这个文件，点「一键复制到公众号」。")
+    print(f"标题单独复制：{title_text}")
+    print("用浏览器打开这个文件，点「复制正文」。图片嵌在正文里，会跟着粘贴过去。")
     if written:
-        print(f"本地配图 {len(written)} 张，在 {image_dir} ，按【插图】的文件名手动插入。")
-    elif records:
-        print("这篇只有网络图片，粘贴后请确认公众号有没有把它们自动保存下来。")
-    else:
-        print("这篇没有配图。")
+        print(f"备用原图在 {image_dir} 。封面如果有，用页面上的下载链接，到后台单独上传。")
     return 0
 
 

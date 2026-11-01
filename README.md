@@ -21,27 +21,30 @@
 
 ## 一键粘贴模式
 
-给固定账号写稿、对方只负责粘贴时用这个。一条命令生成一个 HTML：手机宽度的预览，加一颗「一键复制到公众号」按钮。不跑长截图，不写证据表和隐私报告，也不需要 gzh-design 或 Playwright。Windows 和 Linux 都可以，只用 Python 标准库。
+给固定账号写稿、对方只负责粘贴时用这个。一条命令生成一个 HTML：手机宽度的预览，标题单独一颗「复制标题」，正文一颗「复制正文」。不跑长截图，不写证据表和隐私报告，也不需要 gzh-design 或 Playwright。Windows 和 Linux 都可以，只用 Python 标准库。手机浏览器也能点。
 
 ```bash
 python tools/paste_wechat.py --md 文章.md --theme laochen-shebao -o out/
 ```
 
+有封面时加上 `--cover assets/封面.jpg`，或在文首写 `cover:`。封面只出现在页面上，不进正文。
+
 ```powershell
 python tools\paste_wechat.py --md 文章.md --theme laochen-shebao -o out\
 ```
 
-用浏览器打开生成的 HTML，点绿色按钮，再到公众号后台新建图文，按 `Ctrl+V`。页面上的步骤是：复制 → 打开公众号后台新建图文 → 粘贴 → 检查图片 → 发表。
+用浏览器打开生成的 HTML。先点「复制标题」，填进公众号标题框；再点「复制正文」，粘到正文。文中的图嵌在正文里，会跟着过去。页面上的步骤是：复制标题 → 打开公众号后台新建图文，填进标题框 → 复制正文 → 粘贴到正文 → 检查图片 → 发表。
 
 ```text
 out/
 ├─ 文章.html
 └─ images/
+   ├─ 封面.jpg
    ├─ 01-配图.png
    └─ 02-配图.jpg
 ```
 
-本地图片不会跟着进编辑器。正文里留下 `【插图1：01-配图.png】`，原图在旁边的 `images` 文件夹，按文件名插入后删掉提示。已经是公网地址的图片会原样留着，交给公众号自己转存。说明见[图片粘贴](docs/paste-images.md)。
+`images` 是备用原图。只有粘贴后缺了图才用。说明见[图片粘贴](docs/paste-images.md)。
 
 同一篇 demo 文章的五个账号示例在 [examples/paste-examples](examples/paste-examples)。主题怎么加，见[主题](docs/themes.md)。
 

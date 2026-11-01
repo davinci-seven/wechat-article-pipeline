@@ -572,7 +572,7 @@ def image_section(src: str, alt: str, theme: Theme, first: bool = False) -> str:
 
 
 def placeholder_section(theme: Theme, view: ImageView, first: bool = False) -> str:
-    """粘贴稿里的插图位置。公众号编辑器接不住本地图片，所以这里只留编号。"""
+    """显式要求占位时用的插图框。一键粘贴默认不走这里，正文直接嵌 data URI。"""
     top = "18px" if first else "30px"
     hint = "在这里插入同名图片，插好后删掉这几行提示"
     caption = (

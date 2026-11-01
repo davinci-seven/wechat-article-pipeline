@@ -10,7 +10,7 @@
 
 **本机完整流水线，AI这条路拿不全。** 完整流水线里那份预览页和 HTML 合规校验，靠的是 gzh-design 的 `wrap_preview.py` 和 `validate_gzh_html.py`，它们不在这个仓库里；390px 长截图需要 Playwright，多数聊天环境跑不了浏览器。
 
-只要一个带「一键复制到公众号」按钮的 HTML 时，不用 gzh-design。上传 `tools/paste_wechat.py`、`tools/layouts.py`、`tools/render_wechat.py` 和 `themes/`，运行 `python tools/paste_wechat.py --md 终稿.md --theme olive-journal -o out/`。本地图片的限制见 [paste-images.md](paste-images.md)。
+只要一个能分别复制标题和正文的 HTML 时，不用 gzh-design。上传 `tools/paste_wechat.py`、`tools/layouts.py`、`tools/render_wechat.py` 和 `themes/`，运行 `python tools/paste_wechat.py --md 终稿.md --theme olive-journal -o out/`。正文用选区复制，图片会跟着过去，见 [paste-images.md](paste-images.md)。
 
 所以分两种情况。
 
