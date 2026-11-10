@@ -1,9 +1,9 @@
 {
-  "key": "keshi-laozhou",
-  "name_cn": "科室备忘",
+  "key": "green-memo",
+  "name_cn": "深绿备忘",
   "layout": "memo",
-  "account": "科室老周",
-  "tagline": "职场备忘",
+  "account": "深绿备忘",
+  "tagline": "备忘体",
   "description": "灰纸、深绿、公文横线",
   "list_label": "事项",
   "step_label": "步骤",

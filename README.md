@@ -21,16 +21,16 @@
 
 ## 一键粘贴模式
 
-给固定账号写稿、对方只负责粘贴时用这个。一条命令生成一个 HTML：手机宽度的预览，标题单独一颗「复制标题」，正文一颗「复制正文」。不跑长截图，不写证据表和隐私报告，也不需要 gzh-design 或 Playwright。Windows 和 Linux 都可以，只用 Python 标准库。手机浏览器也能点。
+只想把定稿贴进公众号时用这个。一条命令生成一个 HTML：手机宽度的预览，标题单独一颗「复制标题」，正文一颗「复制正文」。不跑长截图，不写证据表和隐私报告，也不需要 gzh-design 或 Playwright。Windows 和 Linux 都可以，只用 Python 标准库。手机浏览器也能点。
 
 ```bash
-python tools/paste_wechat.py --md 文章.md --theme laochen-shebao -o out/
+python tools/paste_wechat.py --md 文章.md --theme navy-gazette -o out/
 ```
 
 有封面时加上 `--cover assets/封面.jpg`，或在文首写 `cover:`。封面只出现在页面上，不进正文。
 
 ```powershell
-python tools\paste_wechat.py --md 文章.md --theme laochen-shebao -o out\
+python tools\paste_wechat.py --md 文章.md --theme navy-gazette -o out\
 ```
 
 用浏览器打开生成的 HTML。先点「复制标题」，填进公众号标题框；再点「复制正文」，粘到正文。文中的图嵌在正文里，会跟着过去。页面上的步骤是：复制标题 → 打开公众号后台新建图文，填进标题框 → 复制正文 → 粘贴到正文 → 检查图片 → 发表。
@@ -46,7 +46,7 @@ out/
 
 `images` 是备用原图。只有粘贴后缺了图才用。说明见[图片粘贴](docs/paste-images.md)。
 
-同一篇 demo 文章的五个账号示例在 [examples/paste-examples](examples/paste-examples)。主题怎么加，见[主题](docs/themes.md)。
+同一篇 demo 文章的五套版式示例在 [examples/paste-examples](examples/paste-examples)。主题怎么加，见[主题](docs/themes.md)。
 
 下面的完整流水线还在，需要长截图和检查报告时用那个。
 
@@ -178,19 +178,19 @@ python tools\paste_wechat.py --list-themes
 | 留白禅意风 | `zen-whitespace` | 随笔、生活方式和低密度内容 |
 | 摸鱼票据风 | `moyu-ticket` | 测评、工具对比和清单类内容 |
 
-五个账号各有一套固定版式，同一账号的每篇文章都长一样。示例是同一篇 demo 文章：
+另外五套是独立版式，刊头和骨架固定，不跟文章变。示例是同一篇 demo 文章：
 
-![五个账号主题](docs/account-theme-gallery.png)
+![五套版式](docs/layout-theme-gallery.png)
 
-| 主题 | 标识 | 账号 | 样子 |
+| 主题 | 标识 | 刊头示例 | 样子 |
 | --- | --- | --- | --- |
-| 小满日记 | `xiaoman-diary` | 小满的第八年 | 奶油桃粉，日记，行距松 |
-| 老陈跑社保 | `laochen-shebao` | 老陈跑社保 | 大字、海军蓝，重点用黄框 |
-| 科室备忘 | `keshi-laozhou` | 科室老周 | 灰纸、深绿，像一份备忘 |
-| 旧纸堆 | `jiuzhidui` | 旧纸堆里的人 | 旧纸色、宋体，引用做成原文框 |
-| 节气小灶 | `jieqi-xiaozao` | 节气小灶 | 暖绿配橙，图片和步骤更显眼 |
+| 桃粉手记 | `peach-diary` | 桃粉手记 | 奶油桃粉，日记，行距松 |
+| 海军公报 | `navy-gazette` | 海军公报 | 大字、海军蓝，重点用黄框 |
+| 深绿备忘 | `green-memo` | 深绿备忘 | 灰纸、深绿，像一份备忘 |
+| 泛黄档案 | `sepia-archive` | 泛黄档案 | 泛黄色、宋体，引用做成原文框 |
+| 暖灶食谱 | `harvest-kitchen` | 暖灶食谱 | 暖绿配橙，图片和步骤更显眼 |
 
-再加一个账号时，放一份 `themes/*.json` 就行，字段说明见[主题](docs/themes.md)。
+再加一套版式时，放一份 `themes/*.json` 就行，字段说明见[主题](docs/themes.md)。
 
 需要 gzh-design 原生的完整主题组件体系，可以直接查看 [gzh-design](https://github.com/isjiamu/gzh-design-skill)。
 
@@ -228,7 +228,7 @@ python tools\paste_wechat.py --list-themes
 - 原稿SHA256和正文顺序完整性校验
 - 图片存在性检查、图片证据表和图片映射表
 - 图片内嵌的发布稳定版HTML
-- 六套通用主题，外加五个账号的固定版式
+- 六套通用主题，外加五套独立版式
 - 不依赖 gzh-design 的一键粘贴 HTML
 - 390px手机端QA和长截图拼接
 - 公开前路径清理与敏感信息检查

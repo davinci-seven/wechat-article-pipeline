@@ -1,9 +1,9 @@
 {
-  "key": "laochen-shebao",
-  "name_cn": "老陈跑社保",
+  "key": "navy-gazette",
+  "name_cn": "海军公报",
   "layout": "gazette",
-  "account": "老陈跑社保",
-  "tagline": "养老金和医保，按条文说",
+  "account": "海军公报",
+  "tagline": "大字要点",
   "description": "大字、海军蓝、重点用黄框",
   "list_label": "划重点",
   "step_label": "按顺序看",

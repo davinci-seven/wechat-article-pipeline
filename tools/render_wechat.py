@@ -86,7 +86,7 @@ class Theme:
     para_gap: str
     chapter_gap: str
     # 下面这些有默认值。内置六套不填，排版结果与原来一致。
-    # 账号主题用 layout 选另一套结构，其余字段只是配色和固定刊头。
+    # 额外版式用 layout 选另一套结构，其余字段只是配色和固定刊头。
     layout: str = "standard"
     account: str = ""
     tagline: str = ""
@@ -103,7 +103,7 @@ class Theme:
 
 
 # 内置六套共用 standard 布局，参数不要随手改。
-# 新账号主题放到仓库 themes/*.json，格式见 docs/themes.md。
+# 新版式放到仓库 themes/*.json，格式见 docs/themes.md。
 THEMES: dict[str, Theme] = {
     "olive-journal": Theme(
         key="olive-journal", name_cn="橄榄手记",

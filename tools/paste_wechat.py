@@ -4,7 +4,7 @@
 不调用 gzh-design，也不跑 Playwright。默认不写长截图、证据表和隐私报告。
 完整流水线仍用 tools/render_wechat.py 或 tools/公众号排版.ps1。
 
-    python tools/paste_wechat.py --md 文章.md --theme laochen-shebao -o out/
+    python tools/paste_wechat.py --md 文章.md --theme navy-gazette -o out/
 
 用浏览器打开生成的 HTML。「复制标题」只复制标题，「复制正文」用选区复制
 渲染后的正文节点，图片以 data URI 嵌在这个节点里，会跟着进公众号编辑器。

@@ -1,9 +1,9 @@
 {
-  "key": "jieqi-xiaozao",
-  "name_cn": "节气小灶",
+  "key": "harvest-kitchen",
+  "name_cn": "暖灶食谱",
   "layout": "kitchen",
-  "account": "节气小灶",
-  "tagline": "跟着节气做饭",
+  "account": "暖灶食谱",
+  "tagline": "家常步骤",
   "description": "暖绿配橙，图片和步骤突出",
   "list_label": "用料",
   "step_label": "做法",

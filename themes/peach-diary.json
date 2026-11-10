@@ -1,9 +1,9 @@
 {
-  "key": "xiaoman-diary",
-  "name_cn": "小满日记",
+  "key": "peach-diary",
+  "name_cn": "桃粉手记",
   "layout": "diary",
-  "account": "小满的第八年",
-  "tagline": "情感手记",
+  "account": "桃粉手记",
+  "tagline": "日记体",
   "description": "奶油桃粉，日记口气，行距松",
   "quote_label": "旁注",
   "body_font": "-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif",
