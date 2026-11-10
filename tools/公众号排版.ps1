@@ -3,7 +3,7 @@ param(
     [Parameter(Position = 0)]
     [string]$ArticleDir = (Get-Location).Path,
     [string]$Markdown = "",
-    [ValidateSet("olive-journal", "moyu-green", "red-white", "graphite-minimal", "zen-whitespace", "moyu-ticket")]
+    # 不在这里写死主题名单。内置主题和 themes/*.json 都以渲染器为准。
     [string]$Theme = "olive-journal",
     [string]$SectionLabels = "",
     [switch]$ListThemes,

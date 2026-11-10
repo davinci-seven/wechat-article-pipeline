@@ -36,6 +36,10 @@ python -m playwright install chromium
 
 不装也能跑完整条流水线，只是长截图那一步会告警并标记为“未运行”，其余产物照常生成。
 
+## 只做一键粘贴
+
+如果只要复制到公众号，不必安装 gzh-design 和 Playwright，也不用装 Pillow。Python 3.10+ 即可。命令见 README 的「一键粘贴模式」。
+
 ## 3. 安装gzh-design
 
 本流程会调用gzh-design提供的HTML校验、组件检查和复制预览脚本，默认从这里读取：

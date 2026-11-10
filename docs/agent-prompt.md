@@ -8,7 +8,9 @@
 
 先说清楚这条路的边界，免得你照做以后发现拿不到东西。
 
-**本机脚本能产出的全套，AI这条路拿不全。** 带一键复制按钮的预览页和HTML合规校验，靠的是gzh-design的 `wrap_preview.py` 和 `validate_gzh_html.py`，它们在你自己的电脑上，不在这个仓库里；390px长截图需要Playwright，多数聊天环境跑不了浏览器。
+**本机完整流水线，AI这条路拿不全。** 完整流水线里那份预览页和 HTML 合规校验，靠的是 gzh-design 的 `wrap_preview.py` 和 `validate_gzh_html.py`，它们不在这个仓库里；390px 长截图需要 Playwright，多数聊天环境跑不了浏览器。
+
+只要一个能分别复制标题和正文的 HTML 时，不用 gzh-design。上传 `tools/paste_wechat.py`、`tools/layouts.py`、`tools/render_wechat.py` 和 `themes/`，运行 `python tools/paste_wechat.py --md 终稿.md --theme olive-journal -o out/`。正文用选区复制，图片会跟着过去，见 [paste-images.md](paste-images.md)。
 
 所以分两种情况。
 
@@ -23,7 +25,7 @@
 
 能拿到：公众号兼容的内联HTML、图片内嵌的发布稳定版、390px手机截图页HTML、图片证据表、原稿SHA256、正文顺序校验、隐私报告。
 
-拿不到：带复制按钮的预览页、gzh-design的HTML合规校验、390px长截图。
+拿不到：gzh-design 的 HTML 合规校验、390px 长截图。复制按钮可以用本仓库的 `paste_wechat.py`，见上面一节。
 
 这种情况下，把发布稳定版下载回本机，用浏览器打开直接全选复制，一样能粘进公众号，只是少了那个按钮。
 

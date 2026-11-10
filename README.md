@@ -11,12 +11,44 @@
 
 | 我现在要做什么 | 直接看这里 |
 | --- | --- |
+| 只要一个能粘贴进公众号的 HTML | [一键粘贴模式](#一键粘贴模式) |
 | 在Windows电脑上一键排版 | [快速开始](#最快开始) |
 | 安装成Skill交给Codex执行 | [安装成Skill](docs/skill-install.md) |
 | 把文章直接丢给ChatGPT处理 | [AI执行提示词](docs/agent-prompt.md) |
 | 安装运行环境 | [Windows安装](docs/windows-install.md) |
 | 查看项目来源和分工 | [致谢与项目边界](docs/credits.md) |
 | 发布前检查隐私 | [公开前脱敏检查](docs/privacy-check.md) |
+
+## 一键粘贴模式
+
+只想把定稿贴进公众号时用这个。一条命令生成一个 HTML：手机宽度的预览，标题单独一颗「复制标题」，正文一颗「复制正文」。不跑长截图，不写证据表和隐私报告，也不需要 gzh-design 或 Playwright。Windows 和 Linux 都可以，只用 Python 标准库。手机浏览器也能点。
+
+```bash
+python tools/paste_wechat.py --md 文章.md --theme navy-gazette -o out/
+```
+
+有封面时加上 `--cover assets/封面.jpg`，或在文首写 `cover:`。封面只出现在页面上，不进正文。
+
+```powershell
+python tools\paste_wechat.py --md 文章.md --theme navy-gazette -o out\
+```
+
+用浏览器打开生成的 HTML。先点「复制标题」，填进公众号标题框；再点「复制正文」，粘到正文。文中的图嵌在正文里，会跟着过去。页面上的步骤是：复制标题 → 打开公众号后台新建图文，填进标题框 → 复制正文 → 粘贴到正文 → 检查图片 → 发表。
+
+```text
+out/
+├─ 文章.html
+└─ images/
+   ├─ 封面.jpg
+   ├─ 01-配图.png
+   └─ 02-配图.jpg
+```
+
+`images` 是备用原图。只有粘贴后缺了图才用。说明见[图片粘贴](docs/paste-images.md)。
+
+同一篇 demo 文章的五套版式示例在 [examples/paste-examples](examples/paste-examples)。主题怎么加，见[主题](docs/themes.md)。
+
+下面的完整流水线还在，需要长截图和检查报告时用那个。
 
 ## 安装成Skill
 
@@ -65,7 +97,7 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张预览页�
 
 能拿到：干净正文HTML、图片内嵌的发布稳定版、390px手机截图页、图片证据表、原稿哈希、正文顺序校验和隐私报告。
 
-拿不到：带一键复制按钮的预览页和HTML合规校验（这两项来自gzh-design，不在本仓库里），以及390px长截图（需要Playwright，多数聊天环境跑不了浏览器）。把gzh-design的`scripts/`一并上传可以补上前两项。
+拿不到：gzh-design 那份 HTML 合规校验，以及 390px 长截图（需要 Playwright）。带复制按钮的页面可以用本仓库的 `tools/paste_wechat.py`，不用 gzh-design；完整流水线里的预览页仍来自 gzh-design。把 gzh-design 的 `scripts/` 一并上传，可以补上校验和那份预览页。
 
 边界和完整说明见[AI执行提示词](docs/agent-prompt.md)。
 
@@ -126,12 +158,14 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张预览页�
 
 确实需要降级渲染时，加`--allow-unsupported`明确接受，结果里会记录降级了哪些行。
 
-## 六套主题
+## 主题
 
 ```powershell
 .\tools\公众号排版.ps1 -ArticleDir .\我的文章 -Theme red-white
-.\tools\公众号排版.ps1 -ListThemes
+python tools\paste_wechat.py --list-themes
 ```
+
+原来的六套共用一个文章结构，主要换颜色和字号：
 
 ![六套主题对比](docs/theme-gallery.png)
 
@@ -144,9 +178,21 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张预览页�
 | 留白禅意风 | `zen-whitespace` | 随笔、生活方式和低密度内容 |
 | 摸鱼票据风 | `moyu-ticket` | 测评、工具对比和清单类内容 |
 
-主题切换主要调整颜色、字体、间距和排印参数，六套主题共用同一套文章结构。
+另外五套是独立版式，刊头和骨架固定，不跟文章变。示例是同一篇 demo 文章：
 
-需要gzh-design原生的完整主题组件体系，可以直接查看[gzh-design](https://github.com/isjiamu/gzh-design-skill)。
+![五套版式](docs/layout-theme-gallery.png)
+
+| 主题 | 标识 | 刊头示例 | 样子 |
+| --- | --- | --- | --- |
+| 桃粉手记 | `peach-diary` | 桃粉手记 | 奶油桃粉，日记，行距松 |
+| 海军公报 | `navy-gazette` | 海军公报 | 大字、海军蓝，重点用黄框 |
+| 深绿备忘 | `green-memo` | 深绿备忘 | 灰纸、深绿，像一份备忘 |
+| 泛黄档案 | `sepia-archive` | 泛黄档案 | 泛黄色、宋体，引用做成原文框 |
+| 暖灶食谱 | `harvest-kitchen` | 暖灶食谱 | 暖绿配橙，图片和步骤更显眼 |
+
+再加一套版式时，放一份 `themes/*.json` 就行，字段说明见[主题](docs/themes.md)。
+
+需要 gzh-design 原生的完整主题组件体系，可以直接查看 [gzh-design](https://github.com/isjiamu/gzh-design-skill)。
 
 ## 安全边界
 
@@ -182,7 +228,8 @@ GitHub不能直接运行仓库里的本地HTML，所以这里放一张预览页�
 - 原稿SHA256和正文顺序完整性校验
 - 图片存在性检查、图片证据表和图片映射表
 - 图片内嵌的发布稳定版HTML
-- 六套主题的参数化切换
+- 六套通用主题，外加五套独立版式
+- 不依赖 gzh-design 的一键粘贴 HTML
 - 390px手机端QA和长截图拼接
 - 公开前路径清理与敏感信息检查
 - “不发布、不覆盖、不二次渲染”的安全边界
